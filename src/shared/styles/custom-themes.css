@@ -133,37 +133,75 @@ body {
   color: #6E6E77;
 }
 
-/* Estados hover coherentes en gris neutro */
-.dark :where(.hover\:bg-slate-50:hover, .hover\:bg-slate-50\/80:hover, .hover\:bg-slate-100:hover, .hover\:bg-slate-100\/80:hover, .hover\:bg-white:hover) {
-  background-color: #2A2A2A;
+/* Estados hover coherentes en gris neutro y acentos en modo oscuro */
+.dark :is(
+  .hover\:bg-slate-50:hover,
+  .hover\:bg-slate-50\/90:hover,
+  .hover\:bg-slate-50\/80:hover,
+  .hover\:bg-slate-50\/70:hover,
+  .hover\:bg-slate-50\/40:hover,
+  .hover\:bg-slate-100:hover,
+  .hover\:bg-slate-100\/90:hover,
+  .hover\:bg-slate-100\/80:hover,
+  .hover\:bg-slate-100\/70:hover,
+  .hover\:bg-slate-200:hover,
+  .hover\:bg-slate-200\/70:hover,
+  .hover\:bg-slate-300\/70:hover,
+  .hover\:bg-slate-300\/80:hover,
+  .hover\:bg-white:hover,
+  tr.hover\:bg-white:hover,
+  tr.hover\:bg-slate-50\/90:hover
+) {
+  background-color: #262626 !important;
 }
 
-.dark :where(.hover\:text-slate-900:hover, .hover\:text-slate-800:hover, .hover\:text-slate-700:hover) {
-  color: #FFFFFF;
+.dark :is(
+  .hover\:text-slate-900:hover,
+  .hover\:text-slate-800:hover,
+  .hover\:text-slate-700:hover,
+  .hover\:text-slate-600:hover
+) {
+  color: #FFFFFF !important;
 }
 
-.dark :where(.hover\:border-slate-300:hover) {
-  border-color: #3F3F46;
+.dark :is(
+  .hover\:border-slate-200:hover,
+  .hover\:border-slate-300:hover,
+  .hover\:border-slate-400:hover
+) {
+  border-color: #3F3F46 !important;
 }
 
-.dark :where(.focus\:bg-white:focus) {
+.dark :is(.hover\:bg-brand-hover:hover) {
+  background-color: #0E6240 !important;
+}
+
+.dark :is(.focus\:bg-white:focus) {
   background-color: #242424;
 }
 
-.dark :where(.focus\:border-brand-primary:focus) {
+.dark :is(.focus\:border-brand-primary:focus) {
   border-color: #3ECF8E;
 }
 
 /* Acentos Supabase (#3ECF8E) para textos, bordes y anillos de marca en modo oscuro */
-.dark :where(.text-brand-primary, .hover\:text-brand-primary:hover, .hover\:text-brand-hover:hover) {
-  color: #3ECF8E;
+.dark :is(.text-brand-primary, .hover\:text-brand-primary:hover, .hover\:text-brand-hover:hover) {
+  color: #3ECF8E !important;
 }
 
-.dark :where(.group:hover .group-hover\:text-brand-primary) {
-  color: #3ECF8E;
+.dark :is(.group:hover .group-hover\:text-brand-primary) {
+  color: #3ECF8E !important;
 }
 
-.dark :where(.border-brand-primary, .hover\:border-brand-primary:hover) {
+.dark :is(.group:hover .group-hover\:text-slate-700, .group:hover .group-hover\:text-slate-900) {
+  color: #EDEDED !important;
+}
+
+.dark :is(.group:hover .group-hover\:text-slate-600) {
+  color: #D4D4D8 !important;
+}
+
+.dark :is(.border-brand-primary, .hover\:border-brand-primary:hover) {
   border-color: rgba(62, 207, 142, 0.55);
 }
 
