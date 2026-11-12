@@ -1,81 +1,154 @@
-# TenderComply – Analizador de Pliegos (Frontend)
+# TenderComply - Analizador de Pliegos (Frontend)
 
-Plataforma frontend moderna para el análisis inteligente de pliegos de licitación, evaluación de cumplimiento normativo y técnico, gestión de base de conocimientos organizacional y revisión colaborativa con asistencia de IA.
+Plataforma web frontend para el analisis inteligente de pliegos licitatorios, matrices de cobertura y cumplimiento normativo. La solucion permite gestionar documentos licitatorios, procesar archivos PDF con visualizacion interactiva y resaltado de evidencias, y coordinar flujos de trabajo de revision humana con trazabilidad y roles de acceso.
 
----
+## Caracteristicas Principales
 
-## 🚀 Tecnologías Principales
+- Autenticacion y administracion de usuarios: Registro empresarial, recepcion de invitaciones, validaciones de seguridad y control de acceso basado en roles (RBAC).
+- Carga y procesamiento de pliegos: Ingestion de archivos, barra de progreso y estado de procesamiento en tiempo real.
+- Panel de control de licitaciones: Tablero centralizado para seguimiento del estado de cada proceso licitatorio.
+- Matriz de evaluacion y dashboard: Visualizacion de metricas clave, recomendaciones de participacion y desglose de cumplimiento.
+- Visor interactivo de pliegos en PDF: Lectura sincronizada, resaltado visual de requerimientos y consulta de evidencias vinculadas.
+- Flujo de revision humana: Aprobacion y modificacion de sugerencias del sistema con registro de auditoria y justificaciones.
+- Base de conocimiento empresarial: Organizacion de repositorios documentales corporativos para indexacion y analisis contextual.
+- Gestion de miembros del equipo: Asignacion de roles operativos, auditores y administradores.
 
-- **Framework**: React 18 + Vite + TypeScript
-- **Estilos & Animaciones**: Tailwind CSS, Framer Motion, React Icons
-- **Gestión de Estado & Red**: Context API, Axios con interceptores y capa de mocks desacoplada
-- **Visualización de Documentos**: `react-pdf` con capa de resaltado dinámico de coordenadas y evidencias
-- **Onboarding**: React Joyride para tour guiado interactivo
-- **Testing**: Jest + React Testing Library (unitarias e integración), Playwright (E2E)
+## Tecnologias Utilizadas
 
----
+### Nucleo y Construccion
+- React 18
+- TypeScript 5
+- Vite 6
 
-## 📁 Estructura del Proyecto
+### Enrutamiento y Gestion de Estado
+- React Router DOM 6
+- Context API y Hooks personalizados
+- js-cookie (almacenamiento de sesion en cookies)
+
+### Estilos y Presentacion Visual
+- Tailwind CSS 3
+- Framer Motion (animaciones fluidas)
+- React Icons
+- React Joyride (tours interactivos guiados)
+
+### Procesamiento de Documentos y Red
+- React-PDF (renderizado e interaccion sobre archivos PDF)
+- Axios (cliente HTTP centralizado con interceptores)
+- Supabase JS Client
+
+### Calidad de Codigo y Pruebas
+- Jest y React Testing Library (pruebas unitarias y de componentes)
+- Playwright (pruebas de extremo a extremo / E2E)
+- PostCSS y Autoprefixer
+
+## Estructura del Proyecto
+
+La arquitectura sigue un patron modular orientado a caracteristicas (Feature-Driven Architecture):
 
 ```text
 frontend/
+├── .agent/                  Configuraciones y directrices de agentes
+├── e2e/                     Suites de pruebas E2E con Playwright
+├── public/                  Archivos estaticos publicos
+├── scripts/                 Scripts auxiliares y de utileria
 ├── src/
-│   ├── api/                  # Cliente HTTP, interceptores, contratos y endpoints
-│   ├── features/             # Módulos organizados por dominio de negocio:
-│   │   ├── manageAuth/               # Autenticación, registro, invitaciones y roles
-│   │   ├── manageBaseConocimiento/   # Repositorio documental e indexación de empresa
-│   │   ├── manageCargaPliego/        # Subida de pliegos, validaciones y polling de progreso
-│   │   ├── manageDashboardMatriz/    # Matriz de cumplimiento, filtros y recomendaciones
-│   │   ├── manageGestionMiembros/    # Administración de equipo y roles
-│   │   ├── managePanelLicitaciones/  # Bandeja de licitaciones y estados
-│   │   ├── manageRevisionHumana/     # Flujo de aprobación/rechazo y shift de IA
-│   │   └── manageVisorPliego/        # Visor de PDF sincronizado con evidencias
-│   ├── pages/                # Páginas y vistas principales
-│   ├── routes/               # Enrutamiento protegido por autenticación y roles (RBAC)
-│   └── shared/               # Componentes UI reutilizables, hooks, utilidades y temas
-├── e2e/                      # Pruebas End-to-End con Playwright
-└── public/                   # Recursos estáticos
+│   ├── api/                 Cliente Axios, tipos y definicion de endpoints
+│   ├── features/            Modulos funcionales independientes
+│   │   ├── manageAuth/                 Autenticacion, login y registro
+│   │   ├── manageBaseConocimiento/     Base documental y carpetas
+│   │   ├── manageCargaYProgreso/       Carga de archivos y seguimiento
+│   │   ├── manageChatYObservaciones/   Conversaciones y notas en linea
+│   │   ├── manageDashboardMatriz/      Metricas y matriz de cobertura
+│   │   ├── manageMiembros/             Invitaciones y control de equipo
+│   │   ├── managePanelLicitaciones/    Listado y gestion de licitaciones
+│   │   ├── manageRevisionHumana/       Aprobacion y auditoria de decisiones
+│   │   └── manageVisorPliego/          Visor PDF y capa de resaltado
+│   ├── pages/               Vistas principales asociadas a rutas
+│   ├── routes/              Definicion de rutas publicas, privadas y protegidas
+│   └── shared/              Componentes comunes, diseno base, badges y utilidades
+├── .env.example             Plantilla de variables de entorno
+├── .gitignore               Reglas de exclusion para Git
+├── index.html               Punto de entrada HTML
+├── jest.config.cjs          Configuracion de Jest
+├── package.json             Dependencias y scripts del proyecto
+├── playwright.config.ts     Configuracion de Playwright
+├── tailwind.config.js       Configuracion de Tailwind CSS
+├── tsconfig.json            Configuracion del compilador TypeScript
+└── vite.config.ts           Configuracion del empaquetador Vite
 ```
 
----
+## Requisitos Previos
 
-## 🛠️ Instalación y Configuración
+- Node.js (version 18.x o superior recomendada)
+- Gestor de paquetes npm (o pnpm / yarn)
 
-### 1. Clonar el repositorio
-```bash
-git clone https://github.com/Telettubies/telettubiesplus-frontend.git
-cd telettubiesplus-frontend
+## Instalacion y Ejecucion
+
+1. Clonar el repositorio:
+   ```bash
+   git clone https://github.com/Telettubies/telettubiesplus-frontend.git
+   cd telettubiesplus-frontend
+   ```
+
+2. Instalar dependencias:
+   ```bash
+   npm install
+   ```
+
+3. Configurar variables de entorno:
+   Copie el archivo de ejemplo y ajuste las claves correspondientes segun su entorno de ejecucion:
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Iniciar el servidor de desarrollo:
+   ```bash
+   npm run dev
+   ```
+   El entorno quedara disponible en `http://localhost:5173`.
+
+5. Construir la version de produccion:
+   ```bash
+   npm run build
+   ```
+
+6. Previsualizar la version de produccion construida:
+   ```bash
+   npm run preview
+   ```
+
+## Scripts Disponibles
+
+- `npm run dev`: Inicia el servidor de desarrollo local con recarga en caliente (HMR).
+- `npm run build`: Compila y genera los artefactos optimizados de produccion en la carpeta `dist`.
+- `npm run preview`: Levanta un servidor local para inspeccionar la version compilada.
+- `npm run test`: Ejecuta el conjunto de pruebas unitarias con Jest.
+- `npm run test:e2e`: Ejecuta las pruebas de integracion end-to-end con Playwright.
+
+## Licencia
+
+Este proyecto se encuentra publicado bajo los terminos de la Licencia MIT.
+
+```text
+MIT License
+
+Copyright (c) 2026 Telettubies
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
-
-### 2. Instalar dependencias
-```bash
-npm install
-```
-
-### 3. Variables de entorno
-Copia el archivo de ejemplo `.env.example` a `.env`:
-```bash
-cp .env.example .env
-```
-Configura las variables según tu entorno:
-- `VITE_USE_MOCKS`: Establece `true` para desarrollo autónomo con datos mock o `false` para conectar al backend real.
-- `VITE_API_URL`: URL base del API backend.
-- `VITE_APP_ENV`: Entorno de ejecución (`development`, `staging`, `production`).
-
----
-
-## 💻 Scripts Disponibles
-
-| Comando | Descripción |
-|---|---|
-| `npm run dev` | Inicia el servidor de desarrollo local en el puerto 5173 |
-| `npm run build` | Compila la aplicación optimizada para producción en `dist/` |
-| `npm run preview` | Previsualiza el build de producción localmente |
-| `npm test` | Ejecuta las pruebas unitarias y de integración con Jest |
-| `npm run test:e2e` | Ejecuta la suite de pruebas End-to-End con Playwright |
-
----
-
-## 👥 Equipo
-
-Desarrollado por **Telettubies**.
