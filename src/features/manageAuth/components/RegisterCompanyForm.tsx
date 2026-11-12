@@ -180,7 +180,7 @@ export const RegisterCompanyForm: React.FC = () => {
         <div className="flex items-center justify-between gap-3">
           <Link to={ROUTE_PATHS.LOGIN} className="flex items-center gap-3 hover:opacity-90 transition-opacity">
             <img
-              src="/logo criterio.png"
+              src={isDark ? '/logo criterio white.png' : '/logo criterio.png'}
               alt="Logo CRITERIO"
               className="w-10 h-10 object-contain shrink-0"
             />

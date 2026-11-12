@@ -23,19 +23,22 @@ import { TYPOGRAPHY } from '../typography/Typography';
 export const CriterioLogo: React.FC<{ subtitle?: boolean; size?: 'sm' | 'md' }> = ({
   subtitle = false,
   size = 'sm',
-}) => (
-  <div className="flex items-center gap-2.5 select-none">
-    <img
-      src="/logo criterio.png"
-      alt="Logo CRITERIO"
-      className={`${size === 'md' ? 'w-11 h-11' : 'w-9 h-9'} object-contain shrink-0`}
-    />
-    <div className="leading-tight">
-      <span className={`${TYPOGRAPHY.title} text-base tracking-wide block`}>CRITERIO</span>
-      {subtitle && <span className={`${TYPOGRAPHY.label} block`}>Analizador de Pliegos</span>}
+}) => {
+  const { isDark } = useTheme();
+  return (
+    <div className="flex items-center gap-2.5 select-none">
+      <img
+        src={isDark ? '/logo criterio white.png' : '/logo criterio.png'}
+        alt="Logo CRITERIO"
+        className={`${size === 'md' ? 'w-11 h-11' : 'w-9 h-9'} object-contain shrink-0`}
+      />
+      <div className="leading-tight">
+        <span className={`${TYPOGRAPHY.title} text-base tracking-wide block`}>CRITERIO</span>
+        {subtitle && <span className={`${TYPOGRAPHY.label} block`}>Analizador de Pliegos</span>}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const TenderComplyLogo = CriterioLogo;
 
@@ -137,7 +140,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="flex items-center gap-2.5 px-1.5 overflow-hidden whitespace-nowrap hover:opacity-90 transition-opacity"
           >
             <img
-              src="/logo criterio.png"
+              src={isDark ? '/logo criterio white.png' : '/logo criterio.png'}
               alt="Logo CRITERIO"
               className="w-8 h-8 object-contain shrink-0"
             />

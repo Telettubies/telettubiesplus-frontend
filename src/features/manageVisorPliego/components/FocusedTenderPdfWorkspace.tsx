@@ -236,44 +236,44 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
       {/* Contenedor flotante con mayor aire y márgenes de los bordes para no saturar de esquina a esquina */}
       <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-[#171717] rounded-2xl border border-slate-200/80 dark:border-[#2E2E2E] shadow-card overflow-hidden">
         {/* 1. BARRA SUPERIOR CON MAYOR ALTURA Y ESPACIO */}
-        <header className="h-20 min-h-[76px] bg-white border-b border-slate-200/80 px-6 flex items-center justify-between gap-4 shrink-0 font-sans z-30">
-          {/* Izquierda: Volver/Cerrar pestaña + Identificador del Proceso (sin texto redundante) */}
-          <div className="flex items-center gap-3">
+        <header className="h-16 sm:h-18 bg-white dark:bg-[#1A1A1A] border-b border-slate-200/80 dark:border-[#2E2E2E] px-4 sm:px-6 flex items-center justify-between gap-3 shrink-0 font-sans z-30 transition-colors">
+          {/* Izquierda: Volver/Cerrar pestaña + Identificador del Proceso */}
+          <div className="flex items-center gap-3 shrink-0">
             <button
               type="button"
               data-tour="focused-back-btn"
               onClick={onClose}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-xs font-medium transition-colors cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 dark:border-[#2E2E2E] bg-white dark:bg-[#212121] hover:bg-slate-50 dark:hover:bg-[#282828] text-slate-700 dark:text-zinc-200 hover:text-slate-900 dark:hover:text-white text-xs font-medium transition-colors cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
               title="Cerrar visor y volver al resumen"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Volver al resumen</span>
+              <ArrowLeft className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">Volver</span>
             </button>
 
-            <div className="h-6 w-px bg-slate-200 hidden sm:block" />
+            <div className="h-6 w-px bg-slate-200 dark:bg-[#2E2E2E] hidden sm:block shrink-0" />
 
-            <div data-tour="focused-header">
-              <span className="font-bold text-sm text-slate-900 tracking-tight block">
+            <div data-tour="focused-header" className="min-w-0">
+              <span className="font-bold text-sm text-slate-900 dark:text-zinc-100 tracking-tight block truncate">
                 {processId}
               </span>
-              <p className="text-xs text-slate-500 truncate max-w-xs md:max-w-md hidden md:block">
+              <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate max-w-[150px] sm:max-w-xs md:max-w-md hidden md:block">
                 Pliego_Condiciones_v1.pdf · Ministerio de Transporte
               </p>
             </div>
           </div>
 
-          {/* Centro: Filtros de Estado Limpios (sin bolitas de colores) */}
+          {/* Centro: Filtros de Estado Limpios (con flex-nowrap) */}
           <div
             data-tour="focused-state-filters"
-            className="hidden md:flex items-center gap-1.5 bg-slate-100/70 p-1.5 rounded-xl border border-slate-200/60 text-xs"
+            className="hidden lg:flex items-center gap-1 bg-slate-100/70 dark:bg-[#212121] p-1 rounded-xl border border-slate-200/60 dark:border-[#2E2E2E] text-xs shrink-0"
           >
             <button
               type="button"
               onClick={() => setQuickFilter('todos')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
                 quickFilter === 'todos'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-[#2A2A2A] text-slate-900 dark:text-white shadow-2xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Todos ({counts.todos})
@@ -281,10 +281,10 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
             <button
               type="button"
               onClick={() => setQuickFilter('cumple')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
                 quickFilter === 'cumple'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-[#2A2A2A] text-slate-900 dark:text-white shadow-2xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Cumple ({counts.cumple})
@@ -292,10 +292,10 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
             <button
               type="button"
               onClick={() => setQuickFilter('brechas')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
                 quickFilter === 'brechas'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-[#2A2A2A] text-slate-900 dark:text-white shadow-2xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Brechas ({counts.brechas})
@@ -303,55 +303,55 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
             <button
               type="button"
               onClick={() => setQuickFilter('revision')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
                 quickFilter === 'revision'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-[#2A2A2A] text-slate-900 dark:text-white shadow-2xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Revisión ({counts.revision})
             </button>
           </div>
 
-          {/* Derecha: Controles de Zoom, Paginación y Alternancia de Paneles */}
-          <div data-tour="focused-controls" className="flex items-center gap-3">
+          {/* Derecha: Controles de Zoom, Paginación y Alternancia de Paneles (Siempre en una sola línea sin salto) */}
+          <div data-tour="focused-controls" className="flex items-center gap-2 sm:gap-2.5 shrink-0 flex-nowrap">
             {/* Paginador */}
-            <div className="hidden sm:flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-600">
+            <div className="hidden sm:flex items-center gap-1 bg-slate-50 dark:bg-[#212121] border border-slate-200 dark:border-[#2E2E2E] rounded-xl px-2 py-1.5 text-xs text-slate-600 dark:text-zinc-300 shrink-0">
               <button
                 type="button"
                 onClick={() => handlePageJump(currentPage - 1)}
                 disabled={currentPage <= 1}
-                className="p-1 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+                className="p-1 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 cursor-pointer"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4 shrink-0" />
               </button>
-              <span className="px-1.5 font-medium text-slate-800 text-xs">
+              <span className="px-1 font-medium text-slate-800 dark:text-zinc-200 text-xs whitespace-nowrap">
                 Pág. {currentPage} / 74
               </span>
               <button
                 type="button"
                 onClick={() => handlePageJump(currentPage + 1)}
                 disabled={currentPage >= 74}
-                className="p-1 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+                className="p-1 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 cursor-pointer"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 shrink-0" />
               </button>
             </div>
 
             {/* Zoom */}
-            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 p-0.5">
+            <div className="flex items-center bg-slate-50 dark:bg-[#212121] border border-slate-200 dark:border-[#2E2E2E] rounded-xl text-xs text-slate-600 dark:text-zinc-300 p-0.5 shrink-0">
               <button
                 type="button"
                 onClick={handleZoomOut}
-                className="p-1.5 hover:bg-white hover:text-slate-900 rounded-lg cursor-pointer transition-colors"
+                className="p-1.5 hover:bg-white dark:hover:bg-[#2A2A2A] hover:text-slate-900 dark:hover:text-white rounded-lg cursor-pointer transition-colors"
                 title="Reducir zoom"
               >
-                <ZoomOut className="w-3.5 h-3.5" />
+                <ZoomOut className="w-3.5 h-3.5 shrink-0" />
               </button>
               <button
                 type="button"
                 onClick={handleZoomReset}
-                className="px-2.5 py-1 font-semibold text-slate-800 hover:bg-white rounded-lg cursor-pointer text-xs transition-colors"
+                className="px-2 py-1 font-semibold text-slate-800 dark:text-zinc-200 hover:bg-white dark:hover:bg-[#2A2A2A] rounded-lg cursor-pointer text-xs whitespace-nowrap transition-colors"
                 title="Restablecer zoom a 100%"
               >
                 {zoomPercent}%
@@ -359,54 +359,54 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
               <button
                 type="button"
                 onClick={handleZoomIn}
-                className="p-1.5 hover:bg-white hover:text-slate-900 rounded-lg cursor-pointer transition-colors"
+                className="p-1.5 hover:bg-white dark:hover:bg-[#2A2A2A] hover:text-slate-900 dark:hover:text-white rounded-lg cursor-pointer transition-colors"
                 title="Aumentar zoom"
               >
-                <ZoomIn className="w-3.5 h-3.5" />
+                <ZoomIn className="w-3.5 h-3.5 shrink-0" />
               </button>
             </div>
 
-            <div className="h-5 w-px bg-slate-200 hidden sm:block" />
+            <div className="h-5 w-px bg-slate-200 dark:bg-[#2E2E2E] hidden sm:block shrink-0" />
 
             {/* Botón de Modo Oscuro / Claro */}
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-2 rounded-xl border border-slate-200 dark:border-[#2E2E2E] bg-white dark:bg-[#1C1C1C] text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-[#232323] transition-colors cursor-pointer"
+              className="p-2 rounded-xl border border-slate-200 dark:border-[#2E2E2E] bg-white dark:bg-[#212121] text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-[#282828] transition-colors cursor-pointer shrink-0"
               title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
               aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
             >
-              {isDark ? <Sun className="w-4 h-4 text-[#3ECF8E]" /> : <Moon className="w-4 h-4" />}
+              {isDark ? <Sun className="w-4 h-4 text-[#3ECF8E] shrink-0" /> : <Moon className="w-4 h-4 shrink-0" />}
             </button>
 
             {/* Botón para alternar el panel izquierdo (Índice) */}
             <button
               type="button"
               onClick={() => setIsLeftIndexOpen((prev) => !prev)}
-              className={`p-2 rounded-xl border text-xs transition-colors cursor-pointer ${
+              className={`p-2 rounded-xl border text-xs transition-colors cursor-pointer shrink-0 ${
                 isLeftIndexOpen
-                  ? 'bg-slate-100 border-slate-300 text-slate-900'
-                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  ? 'bg-slate-100 dark:bg-[#2A2A2A] border-slate-300 dark:border-[#3ECF8E]/40 text-slate-900 dark:text-[#3ECF8E]'
+                  : 'bg-white dark:bg-[#212121] border-slate-200 dark:border-[#2E2E2E] text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-[#282828]'
               }`}
               title={isLeftIndexOpen ? 'Ocultar índice' : 'Mostrar índice de requisitos'}
             >
-              {isLeftIndexOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
+              {isLeftIndexOpen ? <PanelLeftClose className="w-4 h-4 shrink-0" /> : <PanelLeft className="w-4 h-4 shrink-0" />}
             </button>
 
-            {/* Botón para alternar el panel derecho (Detalle & Evidencia) */}
+            {/* Botón para alternar el panel derecho (Detalle & Evidencia) - Evita salto de línea con whitespace-nowrap */}
             <button
               type="button"
               onClick={() => setIsRightEvidenceOpen((prev) => !prev)}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
                 isRightEvidenceOpen
-                  ? 'bg-brand-primary text-white border-brand-primary'
-                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  ? 'bg-brand-primary dark:bg-[#0D7A4D] text-white border-brand-primary dark:border-[#3ECF8E]/40'
+                  : 'bg-white dark:bg-[#212121] border-slate-200 dark:border-[#2E2E2E] text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-[#282828]'
               }`}
               title={isRightEvidenceOpen ? 'Ocultar información de evidencia' : 'Mostrar información de evidencia'}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span className="hidden xl:inline">
-                {isRightEvidenceOpen ? 'Ocultar panel' : 'Ver evidencia'}
+              <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+              <span className="whitespace-nowrap">
+                {isRightEvidenceOpen ? 'Ocultar' : 'Ver evidencia'}
               </span>
             </button>
           </div>
@@ -419,28 +419,28 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
           <aside
             data-tour="focused-left-index"
             aria-label="Índice de Requisitos"
-            className="w-72 sm:w-80 border-r border-slate-200/80 bg-white flex flex-col shrink-0 h-full max-h-full overflow-hidden font-sans select-none z-20"
+            className="w-72 sm:w-80 border-r border-slate-200/80 dark:border-[#2E2E2E] bg-white dark:bg-[#1A1A1A] flex flex-col shrink-0 h-full max-h-full overflow-hidden font-sans select-none z-20"
           >
             {/* Cabecera del índice con buscador */}
-            <div className="p-3 border-b border-slate-100 space-y-2 bg-slate-50/60 shrink-0">
+            <div className="p-3 border-b border-slate-100 dark:border-[#2E2E2E] space-y-2 bg-slate-50/60 dark:bg-[#1C1C1C] shrink-0">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-900 tracking-tight">
+                <span className="text-xs font-semibold text-slate-900 dark:text-zinc-100 tracking-tight">
                   Índice de Requisitos
                 </span>
-                <span className="text-[11px] font-medium text-slate-400">
+                <span className="text-[11px] font-medium text-slate-400 dark:text-zinc-500">
                   {filteredQuickItems.length} ítems
                 </span>
               </div>
 
               {/* Buscador de numerales y requisitos */}
               <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 dark:text-zinc-500" />
                 <input
                   type="text"
                   value={quickSearch}
                   onChange={(e) => setQuickSearch(e.target.value)}
                   placeholder="Buscar numeral o código..."
-                  className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-brand-primary focus:outline-none"
+                  className="w-full rounded-lg border border-slate-200 dark:border-[#2E2E2E] bg-white dark:bg-[#212121] py-1.5 pl-8 pr-2.5 text-xs text-slate-800 dark:text-zinc-200 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:border-brand-primary dark:focus:border-[#3ECF8E] focus:outline-none"
                 />
               </div>
 
@@ -698,20 +698,20 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
           <aside
             data-tour="focused-evidence-panel"
             aria-label="Panel de Análisis y Evidencia"
-            className="w-80 sm:w-96 lg:w-[420px] border-l border-slate-200/80 bg-white flex flex-col shrink-0 h-full max-h-full overflow-hidden font-sans z-20"
+            className="w-80 sm:w-96 lg:w-[420px] border-l border-slate-200/80 dark:border-[#2E2E2E] bg-white dark:bg-[#1A1A1A] flex flex-col shrink-0 h-full max-h-full overflow-hidden font-sans z-20"
           >
             {/* Header del panel lateral */}
-            <div className="p-3.5 border-b border-slate-200/80 bg-slate-50/70 flex items-center justify-between shrink-0">
+            <div className="p-3.5 border-b border-slate-200/80 dark:border-[#2E2E2E] bg-slate-50/70 dark:bg-[#1C1C1C] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-brand-primary" />
-                <h3 className="text-xs font-semibold text-slate-900 tracking-tight">
+                <FileText className="w-4 h-4 text-brand-primary dark:text-[#3ECF8E]" />
+                <h3 className="text-xs font-semibold text-slate-900 dark:text-zinc-100 tracking-tight">
                   Análisis del Requisito
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsRightEvidenceOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#282828] cursor-pointer"
                 title="Cerrar panel de análisis"
               >
                 <X className="w-4 h-4" />

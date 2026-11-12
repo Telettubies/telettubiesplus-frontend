@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiLock, FiAlertTriangle, FiCheckCircle, FiLoader } from 'react-icons/fi';
 import { useAcceptInvitation } from '../hooks/useAcceptInvitation';
 import { PasswordRulesChecklist } from './PasswordRulesChecklist';
+import { useTheme } from '@/shared/hooks/useTheme';
 
 interface AcceptInviteFormProps {
   onSuccessRedirect?: () => void;
@@ -10,6 +11,7 @@ interface AcceptInviteFormProps {
 
 export const AcceptInviteForm: React.FC<AcceptInviteFormProps> = ({ onSuccessRedirect }) => {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const handleRedirect = onSuccessRedirect ?? (() => navigate('/licitaciones'));
 
   const {
@@ -41,7 +43,7 @@ export const AcceptInviteForm: React.FC<AcceptInviteFormProps> = ({ onSuccessRed
             {/* Logo */}
             <div className="flex items-center gap-2.5">
               <img
-                src="/logo criterio.png"
+                src={isDark ? '/logo criterio white.png' : '/logo criterio.png'}
                 alt="Logo CRITERIO"
                 className="w-9 h-9 object-contain shrink-0"
               />
