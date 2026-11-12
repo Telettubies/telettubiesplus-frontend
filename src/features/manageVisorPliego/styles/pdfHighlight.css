@@ -1,0 +1,5 @@
+/* Estilos de superposición de coordenadas sobre lienzo PDF (HU-F09) */
+[data-testid="pdf-highlight-box"] {
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.65);
+}
+

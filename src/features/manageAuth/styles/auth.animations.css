@@ -1,0 +1,16 @@
+/* Animaciones suaves de entrada para formularios de identidad (manageAuth) */
+@keyframes authFadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-card-enter {
+  animation: authFadeSlide 0.22s ease-out forwards;
+}
+

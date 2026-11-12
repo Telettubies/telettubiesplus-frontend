@@ -1,0 +1,10 @@
+/* Animaciones para carga e indexación de Base de Conocimiento (HU-F04) */
+@keyframes pulseBar {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.indexing-bar-pulse {
+  animation: pulseBar 1.6s infinite ease-in-out;
+}
+

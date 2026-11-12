@@ -1,0 +1,5 @@
+/* Estilos del módulo manageMiembros (HU-F03) */
+.members-scroll-bar::-webkit-scrollbar {
+  height: 5px;
+}
+

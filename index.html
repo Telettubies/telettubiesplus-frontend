@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/x-icon" href="/logo-criterio.ico" />
+    <link rel="shortcut icon" href="/logo-criterio.ico" />
+    <title>CRITERIO — Analizador de Pliegos y Matriz de Cobertura</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem('criterio_theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-surface-page font-sans text-slate-900 dark:text-[#EDEDED] antialiased selection:bg-amber-200 selection:text-slate-900 dark:selection:bg-[#3ECF8E]/30 dark:selection:text-[#3ECF8E]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

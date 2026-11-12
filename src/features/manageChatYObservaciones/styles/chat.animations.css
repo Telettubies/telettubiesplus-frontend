@@ -1,0 +1,14 @@
+/* Animaciones de aparición de respuestas del asistente (HU-F12) */
+#tour-step-chat-assistant {
+  animation: fadeInChat 0.2s ease-out;
+}
+
+@keyframes fadeInChat {
+  from {
+    opacity: 0.92;
+  }
+  to {
+    opacity: 1;
+  }
+}
+

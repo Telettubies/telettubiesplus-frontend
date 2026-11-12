@@ -1,0 +1,236 @@
+/* Soporte para tema de Alto Contraste accesible (ISO/IEC 25010 - Capacidad de interacción) */
+[data-theme='high-contrast'] {
+  --color-brand-primary: #090D16;
+  --surface-page: #FFFFFF;
+  --surface-card: #FFFFFF;
+  --surface-border: #0F172A;
+  --color-status-success: #065F46;
+  --color-status-warning: #92400E;
+  --color-status-danger: #991B1B;
+  --color-status-info: #1E40AF;
+}
+
+/* Scrollbar limpio estilo corporativo */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Scrollbar oscuro estilo Supabase */
+.dark ::-webkit-scrollbar-track {
+  background: #141414;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #2E2E2E;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3ECF8E;
+}
+
+/* Prevenir que el tooltip del tutorial expanda el viewport o genere scroll horizontal indeseado */
+body {
+  overflow-x: hidden;
+}
+
+.__floater__body {
+  max-width: min(440px, calc(100vw - 32px)) !important;
+  box-sizing: border-box !important;
+}
+
+.__floater {
+  max-width: calc(100vw - 32px) !important;
+}
+
+/* ============================================================================
+   MODO OSCURO GLOBAL SUPABASE (Grises profundos #121212-#232323 + Verdes #3ECF8E)
+   Usa :where() para mantener especificidad baja (0,1,0) y permitir que cualquier
+   clase explícita dark:... en componentes particulares prevalezca limpiamente.
+   ============================================================================ */
+
+.dark :where(.bg-white) {
+  background-color: #1C1C1C;
+}
+
+.dark :where(.bg-white\/95) {
+  background-color: rgba(28, 28, 28, 0.95);
+}
+
+.dark :where(.bg-white\/90) {
+  background-color: rgba(28, 28, 28, 0.92);
+}
+
+.dark :where(.bg-white\/80) {
+  background-color: rgba(28, 28, 28, 0.85);
+}
+
+.dark :where(.bg-slate-50, .bg-slate-50\/90, .bg-slate-50\/80, .bg-slate-50\/70, .bg-slate-50\/60, .bg-slate-50\/50) {
+  background-color: #212121;
+}
+
+.dark :where(.bg-slate-100, .bg-slate-100\/90, .bg-slate-100\/80, .bg-slate-100\/70) {
+  background-color: #282828;
+}
+
+.dark :where(.bg-slate-200, .bg-slate-200\/70) {
+  background-color: #2E2E2E;
+}
+
+.dark :where(.bg-slate-700) {
+  background-color: #2E2E2E;
+}
+
+/* Fondos de enlaces/botones y elementos neutros */
+.dark :where(.border-slate-200, .border-slate-200\/90, .border-slate-200\/80, .border-slate-200\/70, .border-slate-200\/60, .border-slate-100, .border-slate-300) {
+  border-color: #2E2E2E;
+}
+
+.dark :where(.divide-slate-100, .divide-slate-200) > :not([hidden]) ~ :not([hidden]) {
+  border-color: #262626;
+}
+
+/* Jerarquía tipográfica sobre gris oscuro Supabase */
+.dark :where(.text-slate-900, .text-slate-800) {
+  color: #EDEDED;
+}
+
+.dark :where(.text-slate-700) {
+  color: #D4D4D8;
+}
+
+.dark :where(.text-slate-600) {
+  color: #A1A1AA;
+}
+
+.dark :where(.text-slate-500, .text-slate-400) {
+  color: #8E8E93;
+}
+
+.dark :where(input, textarea, select)::placeholder {
+  color: #6E6E77;
+}
+
+/* Estados hover coherentes en gris neutro */
+.dark :where(.hover\:bg-slate-50:hover, .hover\:bg-slate-50\/80:hover, .hover\:bg-slate-100:hover, .hover\:bg-slate-100\/80:hover, .hover\:bg-white:hover) {
+  background-color: #2A2A2A;
+}
+
+.dark :where(.hover\:text-slate-900:hover, .hover\:text-slate-800:hover, .hover\:text-slate-700:hover) {
+  color: #FFFFFF;
+}
+
+.dark :where(.hover\:border-slate-300:hover) {
+  border-color: #3F3F46;
+}
+
+.dark :where(.focus\:bg-white:focus) {
+  background-color: #242424;
+}
+
+.dark :where(.focus\:border-brand-primary:focus) {
+  border-color: #3ECF8E;
+}
+
+/* Acentos Supabase (#3ECF8E) para textos, bordes y anillos de marca en modo oscuro */
+.dark :where(.text-brand-primary, .hover\:text-brand-primary:hover, .hover\:text-brand-hover:hover) {
+  color: #3ECF8E;
+}
+
+.dark :where(.group:hover .group-hover\:text-brand-primary) {
+  color: #3ECF8E;
+}
+
+.dark :where(.border-brand-primary, .hover\:border-brand-primary:hover) {
+  border-color: rgba(62, 207, 142, 0.55);
+}
+
+.dark :where(.ring-brand-primary) {
+  --tw-ring-color: #3ECF8E;
+}
+
+.dark :where(.bg-brand-primary\/10, .bg-brand-primary\/5) {
+  background-color: rgba(62, 207, 142, 0.12);
+}
+
+.dark :where(.bg-brand-primary) {
+  border-color: rgba(62, 207, 142, 0.35);
+}
+
+/* Estados semánticos suaves (éxito verde Supabase, alerta ámbar, error rojo, info) */
+.dark :where(.bg-emerald-50, .bg-emerald-50\/60, .bg-emerald-100) {
+  background-color: rgba(62, 207, 142, 0.12);
+}
+
+.dark :where(.border-emerald-200, .border-emerald-100, .border-emerald-300) {
+  border-color: rgba(62, 207, 142, 0.28);
+}
+
+.dark :where(.text-emerald-700, .text-emerald-800, .text-emerald-600) {
+  color: #3ECF8E;
+}
+
+.dark :where(.bg-amber-50, .bg-amber-50\/40, .bg-amber-50\/60, .bg-amber-100, .bg-amber-100\/40, .bg-amber-100\/60, .bg-amber-200\/80) {
+  background-color: rgba(251, 191, 36, 0.12);
+}
+
+.dark :where(.border-amber-200, .border-amber-200\/60, .border-amber-200\/80, .border-amber-300, .border-amber-400) {
+  border-color: rgba(251, 191, 36, 0.32);
+}
+
+.dark :where(.text-amber-700, .text-amber-800, .text-amber-900, .text-amber-900\/90, .text-amber-600) {
+  color: #FBBF24;
+}
+
+.dark :where(.bg-red-50, .bg-red-50\/60, .bg-rose-50, .bg-red-100, .hover\:bg-red-50:hover, .hover\:bg-red-50\/60:hover) {
+  background-color: rgba(248, 113, 113, 0.14);
+}
+
+.dark :where(.border-red-200, .border-rose-200, .border-red-300) {
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.dark :where(.text-red-700, .text-red-800, .text-red-600, .text-rose-700, .hover\:text-red-600:hover, .hover\:text-red-500:hover) {
+  color: #F87171;
+}
+
+.dark :where(.bg-blue-50, .bg-indigo-50, .bg-purple-50) {
+  background-color: rgba(62, 207, 142, 0.08);
+}
+
+.dark :where(.border-blue-200, .border-indigo-200) {
+  border-color: rgba(62, 207, 142, 0.25);
+}
+
+.dark :where(.text-blue-700, .text-blue-600, .text-indigo-700, .text-purple-700) {
+  color: #6EE7B7;
+}
+
+/* Controles nativos e inputs */
+.dark :where(input, textarea, select) {
+  color-scheme: dark;
+}
+
+.dark :where(input:not([type="checkbox"]):not([type="radio"]):not(.bg-transparent), textarea:not(.bg-transparent), select:not(.bg-transparent)) {
+  background-color: #212121;
+  color: #EDEDED;
+  border-color: #2E2E2E;
+}
+
+.dark :where(.shadow-card, .shadow-elevated, .shadow-sm, .shadow-md, .shadow-xl) {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+}

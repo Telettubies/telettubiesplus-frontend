@@ -1,0 +1,14 @@
+/* Animaciones del Stepper del Pipeline de Análisis (HU-F06) */
+@keyframes stagePulse {
+  0%, 100% {
+    background-color: rgba(254, 243, 199, 0.45);
+  }
+  50% {
+    background-color: rgba(254, 243, 199, 0.85);
+  }
+}
+
+.stage-active-row {
+  animation: stagePulse 2s infinite ease-in-out;
+}
+

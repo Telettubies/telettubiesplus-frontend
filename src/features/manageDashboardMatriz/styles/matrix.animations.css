@@ -1,0 +1,5 @@
+/* Animaciones del Dashboard de Matriz de 3 Niveles */
+.matrix-selected-row {
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
