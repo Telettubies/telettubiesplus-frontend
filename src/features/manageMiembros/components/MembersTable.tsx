@@ -62,10 +62,10 @@ export const MembersTable: React.FC<MembersTableProps> = ({
       </div>
 
       {/* Open Table on Canvas */}
-      <div className="overflow-x-auto border-y border-slate-200 bg-white/70">
+      <div className="overflow-x-auto border-y border-slate-200 dark:border-[#2E2E2E] bg-white/70 dark:bg-[#1A1A1A]">
         <table className="w-full text-left border-collapse min-w-[600px]">
           <thead>
-            <tr className="border-b border-slate-200 text-slate-500">
+            <tr className="border-b border-slate-200 dark:border-[#2E2E2E] text-slate-500 dark:text-zinc-400">
               <th className={`py-3.5 px-4 ${TYPOGRAPHY.label}`}>Usuario / Email</th>
               <th className={`py-3.5 px-4 ${TYPOGRAPHY.label}`}>Rol</th>
               <th className={`py-3.5 px-4 ${TYPOGRAPHY.label}`}>Estado</th>
@@ -74,18 +74,18 @@ export const MembersTable: React.FC<MembersTableProps> = ({
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200/70 text-xs">
+          <tbody className="divide-y divide-slate-200/70 dark:divide-[#262626] text-xs">
             {members.map((member) => (
-              <tr key={member.id} className="hover:bg-white transition-colors">
+              <tr key={member.id} className="hover:bg-white dark:hover:bg-[#232323] transition-colors">
                 <td className="py-4 px-4">
                   {member.nombre ? (
                     <>
-                      <p className="font-semibold text-slate-900 leading-snug">{member.nombre}</p>
+                      <p className="font-semibold text-slate-900 dark:text-zinc-100 leading-snug">{member.nombre}</p>
                       <p className={`${TYPOGRAPHY.label} mt-0.5`}>{member.correo}</p>
                     </>
                   ) : (
                     <>
-                      <p className="font-semibold text-slate-900 leading-snug">{member.correo}</p>
+                      <p className="font-semibold text-slate-900 dark:text-zinc-100 leading-snug">{member.correo}</p>
                       <p className={`${TYPOGRAPHY.label} mt-0.5`}>
                         Invitación enviada {member.fecha_invitacion || '2026-11-09'}
                       </p>
@@ -97,7 +97,7 @@ export const MembersTable: React.FC<MembersTableProps> = ({
                     type="button"
                     onClick={() => onRequestRoleToggle(member)}
                     title="Clic para cambiar el rol del miembro"
-                    className="text-brand-primary text-xs font-medium hover:text-brand-hover transition-colors"
+                    className="text-brand-primary dark:text-[#3ECF8E] text-xs font-medium hover:text-brand-hover transition-colors"
                   >
                     {member.rol === 'administrador' ? 'Administrador' : 'Revisor'}
                   </button>
@@ -105,11 +105,11 @@ export const MembersTable: React.FC<MembersTableProps> = ({
                 <td className="py-4 px-4">
                   <div className="flex items-center justify-between gap-2">
                     {member.estado === 'activo' ? (
-                      <span className="text-emerald-700 text-xs font-medium">
+                      <span className="text-emerald-700 dark:text-[#3ECF8E] text-xs font-medium">
                         Activo
                       </span>
                     ) : (
-                      <span className="text-amber-700 text-xs font-medium">
+                      <span className="text-amber-700 dark:text-amber-400 text-xs font-medium">
                         Pendiente
                       </span>
                     )}
@@ -119,7 +119,7 @@ export const MembersTable: React.FC<MembersTableProps> = ({
                         type="button"
                         aria-label={`Retirar a ${member.nombre || member.correo}`}
                         onClick={() => onRequestRemove(member)}
-                        className="text-slate-400 hover:text-red-600 p-1.5 transition-colors"
+                        className="text-slate-400 dark:text-zinc-500 hover:text-red-600 dark:hover:text-red-400 p-1.5 transition-colors"
                         title="Retirar miembro de la organización"
                       >
                         <FiTrash2 className="w-4 h-4" />
@@ -132,7 +132,7 @@ export const MembersTable: React.FC<MembersTableProps> = ({
                     <button
                       type="button"
                       onClick={() => onRequestRemove(member)}
-                      className="text-xs text-slate-500 hover:text-red-600 font-medium"
+                      className="text-xs text-slate-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 font-medium"
                     >
                       Retirar
                     </button>

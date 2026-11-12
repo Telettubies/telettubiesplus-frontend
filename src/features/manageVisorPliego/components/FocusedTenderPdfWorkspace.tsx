@@ -529,25 +529,25 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
                       onClick={() => handleSelectItem(item)}
                       className={`p-2.5 transition-colors cursor-pointer font-sans ${
                         isSelected
-                          ? 'bg-slate-100/90 border-l-3 border-brand-primary'
-                          : 'hover:bg-slate-50/80'
+                          ? 'bg-slate-100/90 dark:bg-[#282828] border-l-3 border-brand-primary dark:border-[#3ECF8E]'
+                          : 'hover:bg-slate-50/80 dark:hover:bg-[#232323]'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-1.5 mb-1">
                         <div className="flex items-center gap-2">
                           <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
-                          <span className="font-semibold text-slate-900 text-xs">
+                          <span className="font-semibold text-slate-900 dark:text-zinc-100 text-xs">
                             {item.codigo_req}
                           </span>
-                          <span className="text-[11px] text-slate-500 font-medium">
+                          <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
                             Numeral {item.numeral}
                           </span>
                         </div>
-                        <span className="text-[11px] font-medium text-slate-500">
+                        <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">
                           {statusLabel}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed pl-4">
+                      <p className="text-[11px] text-slate-600 dark:text-zinc-300 line-clamp-2 leading-relaxed pl-4">
                         {item.descripcion_item}
                       </p>
                     </div>
@@ -615,12 +615,12 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
                         }}
                         className={`relative rounded-xl p-3.5 transition-all cursor-pointer font-sans ${
                           isSelected
-                            ? 'bg-amber-100/60 dark:bg-[#0D7A4D]/20 border-2 border-amber-400 dark:border-[#3ECF8E] shadow-sm'
-                            : 'bg-amber-50/40 dark:bg-[#232323] hover:bg-amber-100/40 dark:hover:bg-[#2A2A2A] border border-amber-200/60 dark:border-[#303030]'
+                            ? 'bg-amber-100/60 dark:bg-[#1E2E24] border-2 border-amber-400 dark:border-[#3ECF8E] shadow-sm'
+                            : 'bg-amber-50/40 dark:bg-[#202020] hover:bg-amber-100/40 dark:hover:bg-[#262626] border border-amber-200/60 dark:border-[#333333]'
                         }`}
                       >
                         {/* Indicador de Numeral y Código */}
-                        <div className={`flex items-center justify-between text-[11px] font-semibold mb-1.5 ${isSelected ? 'text-amber-900/90 dark:text-[#3ECF8E]' : 'text-amber-900/90 dark:text-amber-300'}`}>
+                        <div className={`flex items-center justify-between text-[11px] font-semibold mb-1.5 ${isSelected ? 'text-amber-900/90 dark:text-[#3ECF8E]' : 'text-amber-900/90 dark:text-zinc-300'}`}>
                           <span className="flex items-center gap-1.5">
                             <span>Numeral {clause.numeral}</span>
                             {isSelected && (
@@ -635,7 +635,7 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
                         </div>
 
                         {/* Texto de la Cláusula */}
-                        <p className="text-xs leading-relaxed text-slate-800 font-medium">
+                        <p className="text-xs leading-relaxed text-slate-800 dark:text-zinc-200 font-medium">
                           {clause.text}
                         </p>
 

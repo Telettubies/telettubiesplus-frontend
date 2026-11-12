@@ -75,10 +75,10 @@ export const TendersTable: React.FC<TendersTableProps> = ({
 
   return (
     <div data-tour="portfolio-table" className="space-y-4">
-      <div className="overflow-x-auto border-y border-slate-200 bg-white/70">
+      <div className="overflow-x-auto border-y border-slate-200 dark:border-[#2E2E2E] bg-white/70 dark:bg-[#1A1A1A]">
         <table className="w-full text-left border-collapse min-w-[860px]">
           <thead>
-            <tr className="border-b border-slate-200 text-slate-500">
+            <tr className="border-b border-slate-200 dark:border-[#2E2E2E] text-slate-500 dark:text-zinc-400">
               <th className={`py-3.5 px-4 ${TYPOGRAPHY.label}`}>ID Proceso</th>
               <th className={`py-3.5 px-4 ${TYPOGRAPHY.label}`}>Entidad Contratante</th>
               <th className={`py-3.5 px-4 ${TYPOGRAPHY.label}`}>Objeto de la Contratación</th>
@@ -88,7 +88,7 @@ export const TendersTable: React.FC<TendersTableProps> = ({
               <th className={`py-3.5 px-4 text-right ${TYPOGRAPHY.label}`}>Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200/70">
+          <tbody className="divide-y divide-slate-200/70 dark:divide-[#262626]">
             {items.length > 0 ? (
               items.map((item) => (
                 <TenderRowCard key={item.id} item={item} onOpenTender={onOpenTender} />

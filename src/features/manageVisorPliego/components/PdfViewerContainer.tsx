@@ -491,25 +491,25 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
                       }}
                       className={`p-2.5 transition-colors cursor-pointer font-sans ${
                         isSelected
-                          ? 'bg-slate-100 border-l-2 border-brand-primary'
-                          : 'hover:bg-slate-50/80'
+                          ? 'bg-slate-100 dark:bg-[#282828] border-l-2 border-brand-primary dark:border-[#3ECF8E]'
+                          : 'hover:bg-slate-50/80 dark:hover:bg-[#232323]'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-1.5 mb-1">
                         <div className="flex items-center gap-2">
                           <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
-                          <span className="font-semibold text-slate-900 text-xs">
+                          <span className="font-semibold text-slate-900 dark:text-zinc-100 text-xs">
                             {item.codigo_req}
                           </span>
-                          <span className="text-[11px] text-slate-500 font-medium">
+                          <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
                             Numeral {item.numeral}
                           </span>
                         </div>
-                        <span className="text-[11px] font-medium text-slate-500">
+                        <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">
                           {statusLabel}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed pl-4">
+                      <p className="text-[11px] text-slate-600 dark:text-zinc-300 line-clamp-2 leading-relaxed pl-4">
                         {item.descripcion_item}
                       </p>
                     </div>
@@ -597,7 +597,7 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
                           key={clause.numeral}
                           id={`pdf-clause-${clause.reqCode || clause.numeral}`}
                           data-testid="pdf-highlight-box"
-                          className="rounded-xl border-2 border-amber-400 dark:border-[#3ECF8E] bg-amber-50/70 dark:bg-[#0D7A4D]/20 p-4 transition-all duration-200 shadow-xs space-y-3 font-sans"
+                          className="rounded-xl border-2 border-amber-400 dark:border-[#3ECF8E] bg-amber-50/70 dark:bg-[#1E2E24] p-4 transition-all duration-200 shadow-xs space-y-3 font-sans"
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/80 dark:border-[#3ECF8E]/30 pb-2">
                             <div className="flex items-center gap-2">
@@ -623,7 +623,7 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
                                   e.stopPropagation();
                                   setIsClauseDiagnosisOpen((prev) => !prev);
                                 }}
-                                className="p-1 rounded-md text-amber-800 hover:bg-amber-200/60 transition-colors cursor-pointer"
+                                className="p-1 rounded-md text-amber-800 dark:text-[#3ECF8E] hover:bg-amber-200/60 dark:hover:bg-[#282828] transition-colors cursor-pointer"
                               >
                                 {isClauseDiagnosisOpen ? (
                                   <X className="w-3.5 h-3.5" />
@@ -635,7 +635,7 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
                           </div>
 
                           {/* Texto de la cláusula en el pliego */}
-                          <p className="text-[12.5px] leading-relaxed text-slate-900 font-sans">
+                          <p className="text-[12.5px] leading-relaxed text-slate-900 dark:text-zinc-100 font-sans">
                             {clause.text}
                           </p>
 

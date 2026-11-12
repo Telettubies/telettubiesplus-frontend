@@ -108,7 +108,7 @@ body {
   border-color: #2E2E2E;
 }
 
-.dark :where(.divide-slate-100, .divide-slate-200) > :not([hidden]) ~ :not([hidden]) {
+.dark :where(.divide-slate-100, .divide-slate-200, .divide-slate-200\/70) > :not([hidden]) ~ :not([hidden]) {
   border-color: #262626;
 }
 
