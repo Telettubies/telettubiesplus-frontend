@@ -1,2 +1,0 @@
-# Los scripts enviados a la EC2 deben conservar finales de linea Unix.
-*.sh text eol=lf
