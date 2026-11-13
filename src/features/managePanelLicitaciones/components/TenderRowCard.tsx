@@ -64,7 +64,7 @@ export const TenderRowCard: React.FC<TenderRowCardProps> = ({ item, onOpenTender
             isUrgent ? 'text-amber-700 dark:text-amber-400 font-medium' : 'text-slate-500 dark:text-zinc-400'
           }`}
         >
-          {item.dias_restantes} días restantes
+          {Number.isFinite(item.dias_restantes)?`${item.dias_restantes} días restantes`:'Sin fecha de cierre'}
         </p>
       </td>
       <td className="py-4 px-4 whitespace-nowrap">{renderPipelineBadge()}</td>

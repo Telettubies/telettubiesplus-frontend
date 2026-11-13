@@ -1,3 +1,5 @@
+import { services } from '@/features/connected/services';
+import { progressView } from '@/features/connected/adapters';
 import { axiosClient } from '@/api/axiosClient';
 import { API_ENDPOINTS } from '@/api/endpoints';
 import { shouldUseMock } from '@/shared/utils/mockSwitch';
@@ -15,6 +17,7 @@ export interface UploadTenderResponse {
 
 export const cargaProgresoService = {
   async uploadTenderPdf(file: File, useCache = true): Promise<UploadTenderResponse> {
+    if (!shouldUseMock('VITE_MOCK_CARGA')) { const r=await services.upload(file); return {licitacion_id:r.licitacion.id,trabajo_id:r.trabajo.id,ya_analizado_en_cache:r.duplicada}; }
     if (shouldUseMock('VITE_MOCK_CARGA')) {
       await new Promise((res) => setTimeout(res, 200));
       const isDuplicateCached =
@@ -38,6 +41,7 @@ export const cargaProgresoService = {
   },
 
   async getAnalysisProgress(licitacionId: string, pollTick = 1): Promise<ProgresoAnalisis> {
+    if (!shouldUseMock('VITE_MOCK_CARGA')) return progressView(await services.progress(licitacionId));
     if (shouldUseMock('VITE_MOCK_CARGA')) {
       if (pollTick >= 3) {
         return {

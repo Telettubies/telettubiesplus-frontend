@@ -93,10 +93,10 @@ export const ItemDetailDrawer: React.FC<ItemDetailDrawerProps> = ({
       )}
 
       {/* Historial de Revisiones Humanas (HU-F09 / HU-F11) */}
-      {item.revisiones.length > 0 && (
+      {(item.revisiones ?? []).length > 0 && (
         <div className="bg-white border border-slate-200 rounded-lg p-3 space-y-1.5">
           <p className="font-semibold text-slate-800">Trazabilidad de Revisión Humana:</p>
-          {item.revisiones.map((rev) => (
+          {(item.revisiones ?? []).map((rev) => (
             <div key={rev.id} className="text-[11px] text-slate-600 border-l-2 border-slate-400 pl-2">
               <p className="font-mono font-semibold text-slate-800">
                 Modificado por {rev.autor_nombre} · {rev.fecha} ({rev.estado_anterior} →{' '}

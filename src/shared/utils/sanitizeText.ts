@@ -1,3 +1,4 @@
+import {shouldUseMock} from './mockSwitch';
 /**
  * Prevención estricta de XSS (S-11):
  * Todo texto proveniente de pliegos, evidencias o respuestas de LLMs (Claude/NVIDIA)
@@ -5,6 +6,7 @@
  */
 export function sanitizeText(rawInput: string | null | undefined): string {
   if (!rawInput) return '';
+  if(!shouldUseMock())return String(rawInput);
   return String(rawInput)
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')

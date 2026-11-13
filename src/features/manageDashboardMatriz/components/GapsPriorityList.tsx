@@ -46,7 +46,7 @@ export const GapsPriorityList: React.FC<GapsPriorityListProps> = ({ items, onSel
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="font-mono font-medium text-slate-900">{gap.codigo_req}</span>
                 <span className="font-mono text-slate-500">Numeral {gap.numeral}</span>
-                <CategoryBadge categoria={gap.categoria} />
+                <CategoryBadge categoria={gap.categoria === 'habilitantes' ? 'habilitante' : gap.categoria === 'tecnicos' ? 'tecnico' : gap.categoria} />
                 <span className="text-slate-700 truncate max-w-xs">{gap.descripcion_item}</span>
               </div>
               <div className="flex items-center gap-3 shrink-0">

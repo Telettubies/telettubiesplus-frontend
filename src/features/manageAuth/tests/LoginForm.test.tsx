@@ -37,7 +37,7 @@ describe('LoginForm y RegisterCompanyForm (CRITERIO Auth)', () => {
     expect(await screen.findByTestId('login-error-banner')).toBeInTheDocument();
   });
 
-  it('permite navegar de forma fluida entre los 4 pasos de registro de empresa', () => {
+  it('valida los campos obligatorios antes de avanzar entre los 3 pasos de registro', () => {
     render(
       <MemoryRouter>
         <AuthProvider>
@@ -47,16 +47,19 @@ describe('LoginForm y RegisterCompanyForm (CRITERIO Auth)', () => {
     );
 
     expect(screen.getByText('Registro de Organización en CRITERIO')).toBeInTheDocument();
-    expect(screen.getByText('Información general de su organización')).toBeInTheDocument();
+    // Sin datos obligatorios no se puede avanzar y se muestra el error del campo.
+    fireEvent.click(screen.getByTestId('register-step-card-2'));
+    expect(screen.getByText('El nombre de la empresa es obligatorio.')).toBeInTheDocument();
 
-    // Navegar directamente haciendo clic en las cards de pasos
+    fireEvent.change(screen.getByLabelText(/Nombre o razón social/), { target: { value: 'Constructora Andina S.A.S.' } });
     fireEvent.click(screen.getByTestId('register-step-card-2'));
     expect(screen.getByText('Cuenta del administrador principal')).toBeInTheDocument();
 
+    fireEvent.change(screen.getByLabelText(/Nombre completo/), { target: { value: 'Mauricio Restrepo' } });
+    fireEvent.change(screen.getByLabelText(/Correo electrónico corporativo/), { target: { value: 'admin@empresa.com.co' } });
+    fireEvent.change(document.getElementById('reg-admin-pass')!, { target: { value: 'Password123!' } });
+    fireEvent.change(document.getElementById('reg-admin-confirm')!, { target: { value: 'Password123!' } });
     fireEvent.click(screen.getByTestId('register-step-card-3'));
-    expect(screen.getByText('Perfil licitatorio y preferencias de análisis')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId('register-step-card-4'));
     expect(screen.getByText('Revise y confirme los datos de su organización')).toBeInTheDocument();
   });
 });

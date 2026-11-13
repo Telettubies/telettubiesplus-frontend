@@ -1,4 +1,5 @@
 import React from 'react';
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
 import type { ResultadoLicitacion, CategoriaRequisito } from '@/api/types';
 import { RecommendationHeroCard } from './RecommendationHeroCard';
 import { TYPOGRAPHY } from '@/shared/components/typography/Typography';
@@ -42,7 +43,7 @@ export const TenderOverviewCharts: React.FC<TenderOverviewChartsProps> = ({
       textColor: 'text-emerald-700 dark:text-[#3ECF8E]',
     },
     {
-      label: 'Cumple parcialmente (Subsanable)',
+      label: shouldUseMock() ? 'Cumple parcialmente (Subsanable)' : 'Cumple parcialmente',
       count: resumen_estados.cumple_parcialmente,
       pct: pctParcial,
       barColor: 'bg-amber-500 dark:bg-amber-400',
@@ -206,9 +207,9 @@ export const TenderOverviewCharts: React.FC<TenderOverviewChartsProps> = ({
             <div className="space-y-0.5">
               <p className="text-slate-500">Balance de brechas detectadas en muestra</p>
               <p className="text-slate-800">
-                <span className="text-amber-700 font-medium">{subsanablesCount} subsanables</span>
+                <span className="text-amber-700 font-medium">{shouldUseMock() ? `${subsanablesCount} subsanables` : 'Subsanabilidad no disponible'}</span>
                 {' • '}
-                <span className="text-red-700 font-medium">{noSubsanablesCount} críticas</span>
+                <span className="text-red-700 font-medium">{shouldUseMock() ? `${noSubsanablesCount} críticas` : `${gapsList.length} brechas`}</span>
               </p>
             </div>
             {onGoToMatrix && (

@@ -10,6 +10,7 @@ import {
   FiChevronsRight,
 } from 'react-icons/fi';
 import type { ItemVerificable } from '@/api/types';
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
 import { useMatrixFilters, type MatrixCategoryTab } from '../hooks/useMatrixFilters';
 import { useKeyboardMatrixNav } from '../hooks/useKeyboardMatrixNav';
 import { ComplianceBadge } from '@/shared/components/badges/ComplianceBadge';
@@ -107,11 +108,11 @@ export const MatrixAndGapsContainer: React.FC<MatrixAndGapsContainerProps> = ({
   useKeyboardMatrixNav(filteredItems, selectedItem, onSelectItem, true);
 
   const tabs: { id: MatrixCategoryTab; label: string; count: number }[] = [
-    { id: 'todos', label: 'Todos', count: 142 },
-    { id: 'habilitante', label: 'Habilitantes', count: 38 },
-    { id: 'tecnico', label: 'Técnicos', count: 64 },
-    { id: 'experiencia', label: 'Experiencia', count: 28 },
-    { id: 'plazo', label: 'Plazos', count: 12 },
+    { id: 'todos', label: 'Todos', count: shouldUseMock() ? 142 : items.length },
+    { id: 'habilitante', label: 'Habilitantes', count: shouldUseMock() ? 38 : items.filter(i => i.categoria === 'habilitante').length },
+    { id: 'tecnico', label: 'Técnicos', count: shouldUseMock() ? 64 : items.filter(i => i.categoria === 'tecnico').length },
+    { id: 'experiencia', label: 'Experiencia', count: shouldUseMock() ? 28 : items.filter(i => i.categoria === 'experiencia').length },
+    { id: 'plazo', label: 'Plazos', count: shouldUseMock() ? 12 : items.filter(i => i.categoria === 'plazo').length },
   ];
 
   return (

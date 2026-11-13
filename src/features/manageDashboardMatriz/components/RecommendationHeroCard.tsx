@@ -1,4 +1,5 @@
 import React from 'react';
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
 import { FiAlertTriangle } from 'react-icons/fi';
 import type { ResultadoLicitacion } from '@/api/types';
 import { RecommendationBadge } from '@/shared/components/badges/RecommendationBadge';
@@ -32,7 +33,7 @@ export const RecommendationHeroCard: React.FC<RecommendationHeroCardProps> = ({
   const coveragePct =
     cobertura.secciones_total > 0
       ? Math.round((cobertura.secciones_procesadas / cobertura.secciones_total) * 100)
-      : 100;
+      : shouldUseMock() ? 100 : 0;
 
   return (
     <div data-tour="nivel-1-veredicto" className="space-y-4">
@@ -100,12 +101,12 @@ export const RecommendationHeroCard: React.FC<RecommendationHeroCardProps> = ({
         <div className="lg:col-span-3 space-y-2 lg:border-l lg:border-slate-200/80 lg:pl-6">
           <p className={TYPOGRAPHY.label}>Plazos y Riesgos</p>
           <p className={`${TYPOGRAPHY.title} text-sm`}>
-            Cierre: {fecha_cierre || '2026-12-05'} ({dias_al_cierre ?? 24} Días)
+            Cierre: {fecha_cierre || (shouldUseMock() ? '2026-12-05' : 'No disponible')} ({dias_al_cierre ?? (shouldUseMock() ? 24 : '—')} Días)
           </p>
           <div className="flex items-center gap-2 text-xs">
             <span className={TYPOGRAPHY.label}>Riesgos Habilitantes:</span>
             <span className="text-red-700 text-xs font-medium">
-              {riesgos_habilitantes_criticos ?? 1} Crítico
+              {riesgos_habilitantes_criticos ?? (shouldUseMock() ? 1 : resultado.items.filter(i => i.categoria === 'habilitante' && i.estado === 'no_cumple').length)} Crítico
             </span>
           </div>
         </div>

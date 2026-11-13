@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { PerfilMiembro, RolOrganizacion } from '@/api/types';
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
+import { RealAuthProvider } from '@/features/connected/RealAuthProvider';
+import type { Member } from '@/api/backend';
 import { setTokenProvider } from '@/api/interceptors';
 
 export const DEMO_ADMIN_PROFILE: PerfilMiembro = {
@@ -35,7 +38,11 @@ export type TransversalOverlayState =
   | 'worker_interrupted_503'
   | 'offline_readonly';
 
-interface AuthContextValue {
+export interface AuthContextValue {
+  memberships?: Member[];
+  chooseOrganization?: (id:string)=>void;
+  authError?: string | null;
+  reloadIdentity?: ()=>void;
   user: PerfilMiembro | null;
   accessToken: string | null;
   isLoading: boolean;
@@ -47,13 +54,13 @@ interface AuthContextValue {
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const STORAGE_USER_KEY = 'tc_active_profile_v1';
 const STORAGE_TOKEN_KEY = 'tc_supabase_access_token';
 const STORAGE_UNAUTH_KEY = 'tc_explicit_unauth';
 
-export const AuthProvider: React.FC<{
+const DemoAuthProvider: React.FC<{
   children: React.ReactNode;
   initialAuthenticated?: boolean;
   initialRole?: RolOrganizacion;
@@ -148,3 +155,5 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
+
+export const AuthProvider: React.FC<React.ComponentProps<typeof DemoAuthProvider>> = (props) => shouldUseMock() ? <DemoAuthProvider {...props} /> : <RealAuthProvider>{props.children}</RealAuthProvider>;
