@@ -1,0 +1,189 @@
+# Igual que el backend: main -> GHCR -> SSH -> Docker Compose en EC2.
+# Configuracion y preparacion inicial: docs/CD.md.
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: despliegue-frontend-produccion
+  cancel-in-progress: false
+
+jobs:
+  imagen:
+    name: Publicar imagen en GHCR
+    # Un disparo manual desde otra rama tampoco puede publicar produccion.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      imagen: ${{ steps.nombre.outputs.imagen }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validar configuracion publica del build
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://telettubies-api.duckdns.org/api/v1' }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://etedmckzqceqygbdkzng.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || 'sb_publishable_pxsvpqNiwmAGyAHBWS2b2Q_N9J8MZuv' }}
+          PLATAFORMA: ${{ vars.PLATAFORMA || 'linux/amd64' }}
+        run: |
+          set -euo pipefail
+          for nombre in VITE_API_BASE_URL VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY; do
+            if [[ -z "${!nombre}" ]]; then
+              echo "::error::Falta la variable de Actions $nombre (ver docs/CD.md)"
+              exit 1
+            fi
+          done
+          [[ "$VITE_API_BASE_URL" == https://*/api/v1 ]] || { echo '::error::VITE_API_BASE_URL debe ser https://<dominio-api>/api/v1'; exit 1; }
+          [[ "$VITE_SUPABASE_URL" == https://* ]] || { echo '::error::VITE_SUPABASE_URL debe usar HTTPS'; exit 1; }
+          case "$PLATAFORMA" in
+            linux/amd64|linux/arm64) ;;
+            *) echo '::error::PLATAFORMA debe ser linux/amd64 o linux/arm64'; exit 1 ;;
+          esac
+
+      - name: Nombre de la imagen en minusculas
+        id: nombre
+        run: echo "imagen=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v4
+        if: ${{ vars.PLATAFORMA == 'linux/arm64' }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ vars.PLATAFORMA || 'linux/amd64' }}
+          push: true
+          tags: |
+            ${{ steps.nombre.outputs.imagen }}:${{ github.sha }}
+            ${{ steps.nombre.outputs.imagen }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          build-args: |
+            VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL || 'https://telettubies-api.duckdns.org/api/v1' }}
+            VITE_SUPABASE_URL=${{ vars.VITE_SUPABASE_URL || 'https://etedmckzqceqygbdkzng.supabase.co' }}
+            VITE_SUPABASE_ANON_KEY=${{ vars.VITE_SUPABASE_ANON_KEY || 'sb_publishable_pxsvpqNiwmAGyAHBWS2b2Q_N9J8MZuv' }}
+            APP_REVISION=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  despliegue:
+    name: Desplegar frontend en AWS EC2
+    needs: imagen
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: produccion
+    permissions:
+      contents: read
+      packages: read
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USUARIO: ${{ secrets.EC2_USUARIO }}
+      DIRECTORIO: ${{ vars.EC2_DIRECTORIO || 'analizador-frontend' }}
+      BACKEND_NETWORK: ${{ vars.BACKEND_NETWORK || 'analizador_interna' }}
+      FRONTEND_URL: ${{ vars.FRONTEND_URL || 'https://criterio.duckdns.org' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configurar SSH con la identidad del servidor verificada
+        env:
+          EC2_LLAVE_SSH: ${{ secrets.EC2_LLAVE_SSH }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for nombre in EC2_HOST EC2_USUARIO EC2_LLAVE_SSH EC2_KNOWN_HOSTS FRONTEND_URL; do
+            if [[ -z "${!nombre}" ]]; then
+              echo "::error::Falta configurar $nombre (ver docs/CD.md)"
+              exit 1
+            fi
+          done
+          [[ "$EC2_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]] || exit 1
+          [[ "$EC2_USUARIO" =~ ^[a-z_][a-z0-9_-]*$ ]] || exit 1
+          [[ "$DIRECTORIO" =~ ^[a-zA-Z0-9_/-]+$ && "$DIRECTORIO" != / && "$DIRECTORIO" != -* ]] || exit 1
+          [[ "$BACKEND_NETWORK" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || exit 1
+          [[ "$FRONTEND_URL" == https://* ]] || { echo '::error::FRONTEND_URL debe usar HTTPS'; exit 1; }
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$EC2_LLAVE_SSH" > ~/.ssh/ec2
+          chmod 600 ~/.ssh/ec2
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host ec2
+            HostName $EC2_HOST
+            User $EC2_USUARIO
+            IdentityFile ~/.ssh/ec2
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            BatchMode yes
+            ConnectTimeout 15
+            ServerAliveInterval 30
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Copiar Compose y script de despliegue
+        run: |
+          set -euo pipefail
+          ssh ec2 "bash -s -- $(printf '%q ' "$DIRECTORIO")" <<'EOF'
+          set -euo pipefail
+          mkdir -p -- "$1"
+          cd "$1"
+          if [[ -f docker-compose.prod.yml ]] && grep -q 'BACKEND_IMAGE' docker-compose.prod.yml; then
+            echo 'La carpeta elegida contiene el backend; usar otro EC2_DIRECTORIO para el frontend.' >&2
+            exit 1
+          fi
+          mkdir -p deploy
+          EOF
+          scp docker-compose.prod.yml "ec2:$DIRECTORIO/"
+          scp deploy/desplegar.sh "ec2:$DIRECTORIO/deploy/"
+
+      - name: Descargar la imagen y actualizar solo el frontend
+        env:
+          IMAGEN: ${{ needs.imagen.outputs.imagen }}
+          TAG: ${{ github.sha }}
+          GHCR_USUARIO: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Un directorio de credenciales distinto por ejecucion evita interferir con el CD del backend.
+          CONFIG_DOCKER="/tmp/cd-frontend-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          printf '%s' "$GHCR_TOKEN" | ssh ec2 "docker --config '$CONFIG_DOCKER' login ghcr.io -u '$GHCR_USUARIO' --password-stdin"
+          ssh ec2 "bash '$DIRECTORIO/deploy/desplegar.sh' $(printf '%q ' "$DIRECTORIO" "$IMAGEN" "$TAG" "$BACKEND_NETWORK" "$CONFIG_DOCKER")"
+
+      - name: Verificar que Caddy sirve el frontend por HTTPS
+        env:
+          REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 12); do
+            if [[ "$(curl --fail --silent --show-error --location --max-time 15 --proto '=https' --proto-redir '=https' "${FRONTEND_URL%/}/version.txt")" == "$REVISION" ]]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo '::error::El frontend no esta disponible en su URL publica; revisar DNS y Caddy (docs/CD.md)'
+          exit 1
+
+      - name: Limpiar la llave y las credenciales temporales
+        if: always()
+        run: |
+          if [[ -f ~/.ssh/ec2 && -f ~/.ssh/config ]]; then
+            ssh ec2 "docker --config '/tmp/cd-frontend-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}' logout ghcr.io" || true
+          fi
+          rm -f ~/.ssh/ec2

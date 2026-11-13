@@ -125,6 +125,18 @@ frontend/
 - `npm run test`: Ejecuta el conjunto de pruebas unitarias con Jest.
 - `npm run test:e2e`: Ejecuta las pruebas de integracion end-to-end con Playwright.
 
+## CI/CD del frontend
+
+El workflow [CI](.github/workflows/ci.yml) instala las dependencias con `npm ci`
+y construye el frontend en cada PR hacia `main`, con configuracion ficticia y sin secretos.
+
+El workflow [CD](.github/workflows/cd.yml) publica la imagen del frontend en GHCR
+al recibir cambios en `main` y la despliega por SSH en la misma EC2 del backend.
+Nginx sirve la SPA detras del Caddy existente, sin publicar puertos adicionales.
+
+La configuracion de secretos, variables, DNS y la integracion inicial del proxy
+estan en [docs/CD.md](docs/CD.md). El build de produccion desactiva los mocks.
+
 ## Licencia
 
 Este proyecto se encuentra publicado bajo los terminos de la Licencia MIT.
