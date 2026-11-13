@@ -156,7 +156,7 @@ Variables de repositorio opcionales:
 
 - `EC2_DIRECTORIO`: `analizador-frontend` por defecto, distinto de la carpeta del backend.
 - `FRONTEND_URL`: `https://criterio.duckdns.org` por defecto.
-- `VITE_API_BASE_URL`: `https://telettubies-api.duckdns.org/api/v1` por defecto.
+- `VITE_API_BASE_URL`: `https://telettubies-api.duckdns.org/api` por defecto.
 - `VITE_SUPABASE_URL`: permite reemplazar la URL publica del proyecto conectado.
 
 Las variables antiguas `BACKEND_NETWORK` y `PLATAFORMA` ya no se utilizan.
