@@ -264,3 +264,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+
+
+## Backend real en local
+
+Para iniciar sesión y trabajar con FastAPI en lugar de datos de demostración, consulta [Integración local](docs/INTEGRACION_LOCAL.md).

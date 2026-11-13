@@ -1,4 +1,5 @@
-import React from 'react';
+import {shouldUseMock} from '@/shared/utils/mockSwitch';
+import React, { useState } from 'react';
 import { FiAlertCircle } from 'react-icons/fi';
 import type { LicitacionPortafolioItem } from '@/api/types';
 import type { PortfolioVisualState } from '../hooks/useTendersList';
@@ -27,6 +28,12 @@ export const TendersTable: React.FC<TendersTableProps> = ({
   onClearFilters,
   onRetryConnection,
 }) => {
+  const [page, setPage] = useState(1);
+  const realMode = !shouldUseMock();
+  const pages = Math.max(1, Math.ceil(items.length / 10));
+  const activePage = Math.min(page, pages);
+  const visibleItems = realMode ? items.slice((activePage - 1) * 10, activePage * 10) : items;
+
   if (visualState === 'empty') {
     return (
       <div data-tour="portfolio-table" className="space-y-4 font-sans">
@@ -71,7 +78,7 @@ export const TendersTable: React.FC<TendersTableProps> = ({
     return <SkeletonLoader variant="table" rows={8} />;
   }
 
-  const totalResults = visualState === 'new_job' ? 25 : items.length === 10 ? 24 : items.length;
+  const totalResults = !shouldUseMock()?items.length:visualState === 'new_job' ? 25 : items.length === 10 ? 24 : items.length;
 
   return (
     <div data-tour="portfolio-table" className="space-y-4">
@@ -90,7 +97,7 @@ export const TendersTable: React.FC<TendersTableProps> = ({
           </thead>
           <tbody className="divide-y divide-slate-200/70 dark:divide-[#262626]">
             {items.length > 0 ? (
-              items.map((item) => (
+              visibleItems.map((item) => (
                 <TenderRowCard key={item.id} item={item} onOpenTender={onOpenTender} />
               ))
             ) : (
@@ -118,19 +125,21 @@ export const TendersTable: React.FC<TendersTableProps> = ({
         <span className={TYPOGRAPHY.label}>
           {items.length === 0
             ? 'Página 0 de 0 • 0 resultados'
-            : `Página 1 de 3 • ${totalResults} resultados`}
+            : `Página ${realMode ? activePage : 1} de ${realMode ? pages : 3} • ${totalResults} resultados`}
         </span>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            disabled={items.length === 0}
+            disabled={items.length === 0 || (realMode && activePage <= 1)}
+            onClick={() => { if (realMode) setPage(activePage - 1); }}
             className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-400 disabled:opacity-60"
           >
             Anterior
           </button>
           <button
             type="button"
-            disabled={items.length === 0}
+            disabled={items.length === 0 || (realMode && activePage >= pages)}
+            onClick={() => { if (realMode) setPage(activePage + 1); }}
             className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
           >
             Siguiente

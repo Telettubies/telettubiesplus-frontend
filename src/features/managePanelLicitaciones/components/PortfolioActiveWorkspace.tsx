@@ -9,6 +9,7 @@ import { ROUTE_PATHS } from "@/routes/routePaths";
 export const PortfolioActiveWorkspace: React.FC = () => {
   const navigate = useNavigate();
   const {
+    sourceTenders,
     visualState,
     switchVisualState,
     searchQuery,
@@ -38,7 +39,7 @@ export const PortfolioActiveWorkspace: React.FC = () => {
 
       {/* Indicadores Ejecutivos */}
       <section aria-label="Indicadores de Procesos">
-        <PortfolioKpiCards visualState={visualState} />
+        <PortfolioKpiCards visualState={visualState} items={sourceTenders} />
       </section>
 
       {/* Explorador y Tabla */}
@@ -63,7 +64,7 @@ export const PortfolioActiveWorkspace: React.FC = () => {
           onOpenTender={(item) => {
             if (
               item.estado_pipeline.includes("Extracción") ||
-              item.estado_pipeline.includes("Nuevo")
+              item.estado_pipeline.includes("Nuevo") || item.estado_pipeline === "Fallido"
             ) {
               navigate(`/licitaciones/${item.codigo_proceso}/progreso`);
             } else {

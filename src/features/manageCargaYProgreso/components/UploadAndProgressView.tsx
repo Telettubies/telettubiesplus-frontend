@@ -1,3 +1,6 @@
+import { services } from '@/features/connected/services';
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
+import { notifyError } from '@/features/connected/adapters';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiUploadCloud } from 'react-icons/fi';
@@ -22,6 +25,7 @@ export const UploadAndProgressView: React.FC<UploadAndProgressViewProps> = ({
   const handleNavigateMatrix =
     onNavigateMatrix ?? ((targetId: string) => navigate(`/licitaciones/${targetId}`));
   const {
+    maxPdfMb,maxPdfPages,
     selectedFileMeta,
     validationError,
     useCache,
@@ -31,8 +35,10 @@ export const UploadAndProgressView: React.FC<UploadAndProgressViewProps> = ({
     submitUpload,
   } = usePdfUpload();
 
+  const [activeId,setActiveId]=useState(licitacionId);
   const { progress, startPolling } = useAnalysisPolling({
-    licitacionId,
+    licitacionId:activeId,
+    onComplete:()=>{if(!shouldUseMock())handleNavigateMatrix(activeId);},
     enabled: initialMode === 'live_polling',
   });
 
@@ -44,9 +50,11 @@ export const UploadAndProgressView: React.FC<UploadAndProgressViewProps> = ({
       return;
     }
     setShowEmptySelectionHint(false);
-    await submitUpload(() => {
+    try{await submitUpload((createdId,cached) => {
+      setActiveId(createdId);
+      if(!shouldUseMock()){navigate(`/licitaciones/${createdId}/progreso`,{state:{duplicada:cached}});return;}
       startPolling();
-    });
+    });}catch(e){notifyError(e);}
   };
 
   return (
@@ -78,7 +86,7 @@ export const UploadAndProgressView: React.FC<UploadAndProgressViewProps> = ({
           <span>{duplicateNotice}</span>
           <button
             type="button"
-            onClick={() => handleNavigateMatrix(licitacionId)}
+            onClick={() => handleNavigateMatrix(activeId)}
             className="px-3.5 py-1.5 rounded-xl bg-emerald-700 text-white font-medium cursor-pointer"
           >
             Ver Matriz Existente →
@@ -90,6 +98,7 @@ export const UploadAndProgressView: React.FC<UploadAndProgressViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:divide-x lg:divide-slate-200/80 items-start">
         <div className="lg:col-span-5 lg:pr-4">
           <PdfDropzone
+            maxPdfMb={maxPdfMb} maxPdfPages={maxPdfPages}
             selectedFileMeta={selectedFileMeta}
             validationError={validationError}
             useCache={useCache}
@@ -103,8 +112,8 @@ export const UploadAndProgressView: React.FC<UploadAndProgressViewProps> = ({
         <div className="lg:col-span-7 lg:pl-8">
           <PipelineStepper
             progress={progress}
-            onOpenMatrix={() => handleNavigateMatrix(licitacionId)}
-            onRetryFromCheckpoint={() => startPolling()}
+            onOpenMatrix={() => handleNavigateMatrix(activeId)}
+            onRetryFromCheckpoint={() => {if(shouldUseMock()){startPolling();return;}void services.retry(activeId).then(()=>startPolling()).catch(notifyError);}}
           />
         </div>
       </div>

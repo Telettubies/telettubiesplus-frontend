@@ -1,3 +1,5 @@
+import { services } from '@/features/connected/services';
+import { memberView } from '@/features/connected/adapters';
 import { axiosClient } from '@/api/axiosClient';
 import { API_ENDPOINTS } from '@/api/endpoints';
 import { shouldUseMock } from '@/shared/utils/mockSwitch';
@@ -6,6 +8,7 @@ import type { MiembroOrganizacion, RolOrganizacion } from '@/api/types';
 
 export const miembrosService = {
   async listMembers(): Promise<MiembroOrganizacion[]> {
+    if (!shouldUseMock('VITE_MOCK_MIEMBROS')) return (await services.members()).map(memberView);
     if (shouldUseMock('VITE_MOCK_MIEMBROS')) {
       await new Promise((res) => setTimeout(res, 150));
       return [...MOCK_MIEMBROS_EQUIPO];
@@ -15,6 +18,7 @@ export const miembrosService = {
   },
 
   async inviteMember(correo: string, rol: RolOrganizacion): Promise<MiembroOrganizacion> {
+    if (!shouldUseMock('VITE_MOCK_MIEMBROS')) return memberView(await services.invite(correo,rol));
     if (shouldUseMock('VITE_MOCK_MIEMBROS')) {
       await new Promise((res) => setTimeout(res, 220));
       return {

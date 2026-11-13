@@ -17,6 +17,7 @@ export const ObservationDraftModal: React.FC<ObservationDraftModalProps> = ({
   copiedState = false,
 }) => {
   const {
+    clauses,isMock,
     selectedReqCode,
     draft,
     selectClause,
@@ -47,12 +48,7 @@ export const ObservationDraftModal: React.FC<ObservationDraftModalProps> = ({
             className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:border-slate-800 focus:outline-none"
           >
             <option value="">Seleccione una cláusula ambigua o restrictiva ▾</option>
-            <option value="REQ-019">
-              REQ-019 (Numeral 3.4.2 - Maquinaria y Equipos Propios) ▾
-            </option>
-            <option value="REQ-022">
-              REQ-022 (Numeral 5.2 - Plan de Gestión Ambiental y SST) ▾
-            </option>
+            {isMock?<><option value="REQ-019">REQ-019 (Numeral 3.4.2 - Maquinaria y Equipos Propios) ▾</option><option value="REQ-022">REQ-022 (Numeral 5.2 - Plan de Gestión Ambiental y SST) ▾</option></>:clauses.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
         </div>
 

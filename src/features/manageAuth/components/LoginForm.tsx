@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { FiEye, FiEyeOff, FiLock, FiAlertCircle, FiCheckCircle, FiLoader, FiMoon, FiSun } from 'react-icons/fi';
 import { useLogin } from '../hooks/useLogin';
@@ -15,8 +17,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ initialExpired, onSuccessR
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isExpiredQuery = initialExpired ?? searchParams.get('expired') === '1';
-  const redirectTarget = searchParams.get('redirect') || '/licitaciones';
-  const handleRedirect = onSuccessRedirect ?? (() => navigate(redirectTarget));
+  const requestedRedirect = searchParams.get('redirect') || ROUTE_PATHS.TENDERS_LIST;
+  const redirectTarget = requestedRedirect.startsWith('/') && !requestedRedirect.startsWith('//') && !requestedRedirect.includes(String.fromCharCode(92)) && !['/login', '/registro', '/register'].includes(requestedRedirect.split(/[?#]/)[0]) ? requestedRedirect : ROUTE_PATHS.TENDERS_LIST;
+  const { accessToken, isLoading, user } = useAuth();
+  // Las páginas de administración no sirven de destino para un revisor: va al portafolio.
+  const adminOnly = [ROUTE_PATHS.KNOWLEDGE_BASE, ROUTE_PATHS.MEMBERS_MANAGEMENT].some((ruta) => redirectTarget.split(/[?#]/)[0].startsWith(ruta));
+  const finalTarget = adminOnly && user && user.rol !== 'administrador' ? ROUTE_PATHS.TENDERS_LIST : redirectTarget;
+  const handleRedirect = useCallback(() => { if (onSuccessRedirect) onSuccessRedirect(); else navigate(finalTarget, { replace: true }); }, [onSuccessRedirect, navigate, finalTarget]);
+  useEffect(() => { if (!shouldUseMock() && accessToken && !isLoading) handleRedirect(); }, [accessToken, isLoading, handleRedirect]);
 
   const {
     email,
@@ -27,7 +35,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ initialExpired, onSuccessR
     setVisualState,
     errorMessage,
     submitLogin,
-    quickDemoLogin,
+    signInWithGoogle, resetPassword, notice, isSubmitting,
   } = useLogin(isExpiredQuery);
 
   const { isDark, toggleTheme } = useTheme();
@@ -85,7 +93,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ initialExpired, onSuccessR
             className="flex items-center gap-2.5 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-normal"
           >
             <FiCheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Identidad verificada. Cargando espacio de trabajo...</span>
+            <span>Verificando credenciales y cargando tu organización...</span>
           </div>
         )}
 
@@ -110,17 +118,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ initialExpired, onSuccessR
             className="flex items-start gap-2.5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-normal"
           >
             <FiAlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <span>Your session has expired due to inactivity. Please authenticate with Google to resume.</span>
+            <span>Tu sesión expiró por inactividad. Inicia sesión de nuevo para continuar.</span>
           </div>
         )}
 
+        {(notice || searchParams.get('confirmed') === '1') && <div role="status" className="flex items-center gap-2.5 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs"><FiCheckCircle className="w-4 h-4 shrink-0" /><span>{notice || 'Confirmación recibida. Inicia sesión con tu correo y contraseña.'}</span></div>}
+        {searchParams.get('error_description') && <p role="alert" className="text-xs text-red-700">{searchParams.get('error_description')}</p>}
         {/* Continue with Google Button */}
         <button
           type="button"
-          onClick={() => {
-            setVisualState('connecting_idp');
-            setTimeout(() => quickDemoLogin('administrador', handleRedirect), 350);
-          }}
+          onClick={() => void signInWithGoogle(handleRedirect, redirectTarget)}
+          disabled={isSubmitting}
           className="w-full py-3 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-800 flex items-center justify-center gap-2.5 transition-colors"
         >
           {visualState === 'connecting_idp' ? (
@@ -163,7 +171,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ initialExpired, onSuccessR
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div className="space-y-1.5">
             <label htmlFor="corporate-email" className="block text-xs font-medium text-slate-800 dark:text-zinc-200">
               Correo corporativo
@@ -171,6 +179,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ initialExpired, onSuccessR
             <input
               id="corporate-email"
               type="email"
+              autoComplete="username"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -186,7 +195,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ initialExpired, onSuccessR
               </label>
               <button
                 type="button"
-                onClick={() => setVisualState('session_expired')}
+                onClick={() => void resetPassword()}
+                disabled={isSubmitting}
                 className="text-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-[#3ECF8E] font-normal cursor-pointer"
               >
                 ¿Olvidó su contraseña?
@@ -196,6 +206,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ initialExpired, onSuccessR
               <input
                 id="corporate-password"
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -216,9 +227,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ initialExpired, onSuccessR
           <button
             type="submit"
             data-testid="login-submit-button"
-            className="w-full py-3 px-4 rounded-xl bg-brand-primary hover:bg-brand-hover text-white text-xs font-medium transition-colors shadow-xs dark:ring-1 dark:ring-[#3ECF8E]/30 cursor-pointer"
+            disabled={isSubmitting}
+            className="w-full py-3 px-4 rounded-xl bg-brand-primary hover:bg-brand-hover text-white text-xs font-medium transition-colors shadow-xs dark:ring-1 dark:ring-[#3ECF8E]/30 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Ingresar al Espacio de Trabajo
+            {isSubmitting ? 'Verificando...' : 'Ingresar al Espacio de Trabajo'}
           </button>
         </form>
 

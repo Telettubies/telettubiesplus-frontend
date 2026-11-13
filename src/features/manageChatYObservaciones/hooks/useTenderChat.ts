@@ -1,4 +1,7 @@
-import { useState, useMemo } from 'react';
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
+import { services } from '@/features/connected/services';
+import { notifyError } from '@/features/connected/adapters';
+import { useState, useMemo, useEffect } from 'react';
 import type { MensajeChat } from '@/api/types';
 import { MOCK_CHAT_HISTORIAL } from '../mockups/chatObservaciones.mock';
 import { chatObservacionesService } from '../services/chatObservacionesService';
@@ -16,11 +19,12 @@ export function useTenderChat(
   initialScenario: ChatScenarioState = 'default_chat'
 ) {
   const [scenario, setScenario] = useState<ChatScenarioState>(initialScenario);
-  const [customMessages, setCustomMessages] = useState<MensajeChat[]>(MOCK_CHAT_HISTORIAL);
+  const [customMessages, setCustomMessages] = useState<MensajeChat[]>(()=>shouldUseMock()?MOCK_CHAT_HISTORIAL:[]);
   const [inputText, setInputText] = useState<string>('');
   const [isSending, setIsSending] = useState<boolean>(false);
 
   const displayedMessages = useMemo<MensajeChat[]>(() => {
+    if (!shouldUseMock()) return customMessages;
     if (scenario === 'empty_suggestions') {
       return [];
     }
@@ -65,12 +69,14 @@ export function useTenderChat(
     return customMessages;
   }, [scenario, customMessages]);
 
-  const quotaAvailable = scenario === 'empty_suggestions' ? 30 : 18;
-  const quotaTotal = 30;
+  const [limits,setLimits]=useState<{available:number;total:number}>({available:0,total:0});
+  useEffect(()=>{if(shouldUseMock())return;let alive=true;services.limits().then(l=>{if(alive)setLimits({available:Math.max(0,l.chat.cuota-l.chat.usados),total:l.chat.cuota});}).catch(notifyError);return()=>{alive=false;};},[licitacionId,customMessages.length]);
+  const quotaAvailable = shouldUseMock()?(scenario === 'empty_suggestions' ? 30 : 18):limits.available;
+  const quotaTotal = shouldUseMock()?30:limits.total;
 
   const sendMessage = async (questionOverride?: string, contextOverride?: string) => {
     const q = (questionOverride ?? inputText).trim();
-    if (!q) return;
+    if (!q || isSending) return;
     const userMsg: MensajeChat = {
       id: `user-${Date.now()}`,
       rol: 'usuario',
@@ -87,9 +93,9 @@ export function useTenderChat(
     setInputText('');
     setIsSending(true);
     try {
-      const reply = await chatObservacionesService.enviarPregunta(licitacionId, q);
+      const reply = await chatObservacionesService.enviarPregunta(licitacionId, !shouldUseMock() && contextOverride ? `${q}\nContexto seleccionado: ${contextOverride}` : q);
       setCustomMessages((prev) => [...prev, reply]);
-    } finally {
+    } catch(e){setCustomMessages(prev=>[...prev,{id:crypto.randomUUID(),rol:'error_429',contenido:(e as Error).message||'No se pudo enviar la pregunta.'}]);} finally {
       setIsSending(false);
     }
   };

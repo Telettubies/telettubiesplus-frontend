@@ -28,8 +28,8 @@ export function useMatrixFilters(items: ItemVerificable[]) {
         !q ||
         item.codigo_req.toLowerCase().includes(q) ||
         item.numeral.toLowerCase().includes(q) ||
-        item.descripcion_item.toLowerCase().includes(q) ||
-        item.texto_requisito_literal.toLowerCase().includes(q);
+        (item.descripcion_item ?? "").toLowerCase().includes(q) ||
+        (item.texto_requisito_literal ?? "").toLowerCase().includes(q);
 
       return matchesCat && matchesQuick && matchesSearch;
     });

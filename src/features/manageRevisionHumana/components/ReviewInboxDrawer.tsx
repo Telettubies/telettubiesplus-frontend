@@ -1,4 +1,5 @@
 import React from 'react';
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
 import { CheckCircle2 } from 'lucide-react';
 import { useHumanReview, type ReviewScenarioState } from '../hooks/useHumanReview';
 import { ReviewDecisionForm } from './ReviewDecisionForm';
@@ -228,9 +229,10 @@ export const ReviewInboxDrawer: React.FC<ReviewInboxDrawerProps> = ({
 
                 {/* Formulario de Decisión Manual */}
                 <ReviewDecisionForm
+                  key={shouldUseMock() ? 'mock-form' : activeItem.id}
                   esHabilitante={activeItem.es_habilitante}
                   initialDecision={
-                    scenario === 'no_cumple_warn' || scenario === 'recalculating'
+                    !shouldUseMock() ? (activeItem.estado_propuesto || 'cumple') : scenario === 'no_cumple_warn' || scenario === 'recalculating'
                       ? 'no_cumple'
                       : 'cumple'
                   }

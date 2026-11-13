@@ -1,3 +1,4 @@
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
 import React from 'react';
 import { FiClock, FiArrowRight } from 'react-icons/fi';
 import type { ProgresoAnalisis, EtapaPipeline } from '@/api/types';
@@ -62,11 +63,12 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
         </div>
       </div>
 
+      {!shouldUseMock() && progress.estado === 'error' && progress.mensaje_error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800">{progress.mensaje_error}</p>}
       {/* Top Status Banner */}
       {progress.estado === 'pendiente' && (
         <div className="py-2 flex items-center gap-2.5 text-xs text-slate-600">
           <FiClock className="w-4 h-4 text-slate-500 shrink-0" />
-          <span>Seleccione un archivo PDF para iniciar el análisis del documento.</span>
+          <span>{!shouldUseMock() && progress.trabajo_id ? 'Trabajo en cola. Esperando al worker de análisis…' : 'Seleccione un archivo PDF para iniciar el análisis del documento.'}</span>
         </div>
       )}
 

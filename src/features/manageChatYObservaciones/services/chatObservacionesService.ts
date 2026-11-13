@@ -1,3 +1,4 @@
+import { services } from '@/features/connected/services';
 import { axiosClient } from '@/api/axiosClient';
 import { ENDPOINTS } from '@/api/endpoints';
 import type { BorradorObservacion, MensajeChat } from '@/api/types';
@@ -13,6 +14,7 @@ export const chatObservacionesService = {
     cuota_disponible: number;
     cuota_total: number;
   }> {
+    if(!shouldUseMock('VITE_MOCK_CHAT')){const l=await services.limits();return {mensajes:[],cuota_disponible:Math.max(0,l.chat.cuota-l.chat.usados),cuota_total:l.chat.cuota};}
     if (shouldUseMock('VITE_MOCK_CHAT')) {
       return {
         mensajes: [...MOCK_CHAT_HISTORIAL],
@@ -29,6 +31,7 @@ export const chatObservacionesService = {
   },
 
   async enviarPregunta(licitacionId: string, pregunta: string): Promise<MensajeChat> {
+    if(!shouldUseMock('VITE_MOCK_CHAT')){const r=await services.chat(licitacionId,pregunta);return {id:crypto.randomUUID(),rol:r.encontrado?'asistente':'FueraDeAlcance',contenido:r.respuesta,creado_en:new Date().toISOString(),referencias:r.citas.filter(c=>c.pagina!==null).map(c=>({etiqueta:`Numeral ${c.numeral}`,numeral:c.numeral,pagina:c.pagina!}))};}
     if (shouldUseMock('VITE_MOCK_CHAT')) {
       await new Promise((res) => setTimeout(res, 250));
       const lower = pregunta.toLowerCase();
@@ -62,6 +65,7 @@ export const chatObservacionesService = {
     licitacionId: string,
     requisitoCodigo: string
   ): Promise<BorradorObservacion> {
+    if(!shouldUseMock('VITE_MOCK_CHAT')){const r=await services.draft(licitacionId,requisitoCodigo);return {requisito_id:r.requisito_id,numeral:r.numeral,titulo_corto:r.asunto,texto_completo:r.texto,destinatario:'Entidad contratante',hecho_cuestionado:r.texto,sustento_juridico:'',solicitud_concreta:''};}
     if (shouldUseMock('VITE_MOCK_CHAT')) {
       await new Promise((res) => setTimeout(res, 300));
       return (
