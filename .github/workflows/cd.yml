@@ -1,4 +1,5 @@
 # Imagen de produccion en GHCR; entorno publico desde el .env.production de la VM.
+#V2
 name: CD
 
 on:
