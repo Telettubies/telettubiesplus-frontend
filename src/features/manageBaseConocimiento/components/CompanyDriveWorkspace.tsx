@@ -329,7 +329,7 @@ export const CompanyDriveWorkspace: React.FC = () => {
     if (!supported.length) { showToast('Selecciona archivos PDF, JSON o una carpeta que los contenga.'); return; }
     const jsonFiles = supported.filter(file => /\.json$/i.test(file.name));
     if (jsonFiles.length > 1) { showToast('Selecciona un solo JSON de contexto por carga; puedes incluir varios PDFs.'); return; }
-    if (jsonFiles.length && !window.confirm('El JSON reemplazara el contexto actual cuando termine de indexarse. Los PDFs requieren revision. Continuar?')) return;
+    if (jsonFiles.length && !window.confirm('El JSON reemplazara el contexto actual cuando termine de indexarse. Los PDFs completos se indexaran automaticamente; los incompletos quedaran en revision. Continuar?')) return;
     setUploading(true);
     let uploaded = 0;
     const failed: string[] = [];
