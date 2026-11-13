@@ -47,7 +47,7 @@ La arquitectura sigue un patron modular orientado a caracteristicas (Feature-Dri
 
 ```text
 frontend/
-├── .agent/                  Configuraciones y directrices de agentes
+├── docs/                    Integración local, diseño (DAS, historias, interfaces) y reto
 ├── e2e/                     Suites de pruebas E2E con Playwright
 ├── public/                  Archivos estaticos publicos
 ├── scripts/                 Scripts auxiliares y de utileria
