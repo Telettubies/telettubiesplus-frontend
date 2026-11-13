@@ -97,30 +97,38 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const indexListRef = useRef<HTMLDivElement | null>(null);
 
+  const isItemCumple = useCallback((item: ItemVerificable) => {
+    return item.estado === 'cumple' || (item.estado === 'revision' && item.estado_propuesto === 'cumple');
+  }, []);
+
+  const isItemBrecha = useCallback((item: ItemVerificable) => {
+    return (
+      item.estado === 'no_cumple' ||
+      item.estado === 'cumple_parcialmente' ||
+      (item.estado === 'revision' &&
+        (item.estado_propuesto === 'no_cumple' || item.estado_propuesto === 'cumple_parcialmente'))
+    );
+  }, []);
+
+  const isItemRevision = useCallback((item: ItemVerificable) => {
+    return item.estado === 'revision';
+  }, []);
+
   // Conteos ejecutivos de estado
   const counts = {
     todos: allItems.length,
-    cumple: allItems.filter((i) => i.estado === 'cumple').length,
-    brechas: allItems.filter((i) => i.estado === 'no_cumple' || i.estado === 'cumple_parcialmente').length,
-    revision: allItems.filter((i) => i.estado === 'revision').length,
+    cumple: allItems.filter(isItemCumple).length,
+    brechas: allItems.filter(isItemBrecha).length,
+    revision: allItems.filter(isItemRevision).length,
     parcial: allItems.filter((i) => i.estado === 'cumple_parcialmente').length,
     noCumple: allItems.filter((i) => i.estado === 'no_cumple').length,
   };
 
   // Filtrado de ítems para el índice izquierdo
   const filteredQuickItems = allItems.filter((item) => {
-    if (quickFilter === 'cumple' && item.estado !== 'cumple') return false;
-    if (
-      quickFilter === 'brechas' &&
-      item.estado !== 'no_cumple' &&
-      item.estado !== 'cumple_parcialmente'
-    )
-      return false;
-    if (
-      quickFilter === 'revision' &&
-      item.estado !== 'revision'
-    )
-      return false;
+    if (quickFilter === 'cumple' && !isItemCumple(item)) return false;
+    if (quickFilter === 'brechas' && !isItemBrecha(item)) return false;
+    if (quickFilter === 'revision' && !isItemRevision(item)) return false;
 
     if (quickSearch.trim()) {
       const q = quickSearch.toLowerCase();
@@ -158,8 +166,19 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
     '7.1': 38,
   };
 
+  const getPageForItem = useCallback((item: ItemVerificable): number => {
+    if (!shouldUseMock()) {
+      return item.ubicacion?.pagina || item.backend_item?.ubicacion?.pagina || 1;
+    }
+    if (NUMERAL_PAGE_MAP[item.numeral]) return NUMERAL_PAGE_MAP[item.numeral];
+    for (const [key, pg] of Object.entries(NUMERAL_PAGE_MAP)) {
+      if (item.numeral.startsWith(key) || key.startsWith(item.numeral)) return pg;
+    }
+    return 14;
+  }, []);
+
   const getPageForNumeral = (numeral: string): number => {
-    if(!shouldUseMock())return allItems.find(i=>i.numeral===numeral)?.ubicacion.pagina||1;
+    if (!shouldUseMock()) return allItems.find((i) => i.numeral === numeral)?.ubicacion.pagina || 1;
     if (NUMERAL_PAGE_MAP[numeral]) return NUMERAL_PAGE_MAP[numeral];
     for (const [key, pg] of Object.entries(NUMERAL_PAGE_MAP)) {
       if (numeral.startsWith(key) || key.startsWith(numeral)) return pg;
@@ -169,11 +188,16 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
 
   // Scroll suave al párrafo seleccionado sin mover la ventana exterior
   const scrollToClause = useCallback((item: ItemVerificable) => {
-    const targetPage = getPageForNumeral(item.numeral);
+    const targetPage = getPageForItem(item);
     setCurrentPage(targetPage);
     setIsClauseDiagnosisOpen(true);
 
     setTimeout(() => {
+      const highlightEl = document.getElementById('pdf-highlight-zone');
+      if (highlightEl) {
+        highlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
       if (scrollContainerRef.current) {
         const clauseEl = document.getElementById(`pdf-clause-${item.codigo_req}`);
         if (clauseEl) {
@@ -191,8 +215,8 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
           scrollContainerRef.current.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
         }
       }
-    }, 100);
-  }, []);
+    }, 120);
+  }, [getPageForItem]);
 
   // Al seleccionar un ítem desde el índice o el PDF
   const handleSelectItem = (item: ItemVerificable) => {
@@ -200,7 +224,7 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
     scrollToClause(item);
 
     // Sincronizar también el scroll del índice izquierdo
-    const navItemEl = document.getElementById(`focused-nav-item-${item.codigo_req}`);
+    const navItemEl = document.getElementById(`focused-nav-item-${item.id}`) || document.getElementById(`focused-nav-item-${item.codigo_req}`);
     if (navItemEl && indexListRef.current) {
       const containerTop = indexListRef.current.getBoundingClientRect().top;
       const itemTop = navItemEl.getBoundingClientRect().top;
@@ -514,7 +538,9 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
                 </div>
               ) : (
                 filteredQuickItems.map((item) => {
-                  const isSelected = selectedItem?.codigo_req === item.codigo_req;
+                  const isSelected = selectedItem?.id
+                    ? selectedItem.id === item.id
+                    : selectedItem?.codigo_req === item.codigo_req;
                   let dotColor = 'bg-slate-300';
                   let statusLabel = 'Pendiente';
 
@@ -528,14 +554,29 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
                     dotColor = 'bg-rose-500';
                     statusLabel = 'No cumple';
                   } else if (item.estado === 'revision') {
-                    dotColor = 'bg-blue-500';
-                    statusLabel = 'En revisión';
+                    dotColor =
+                      item.estado_propuesto === 'cumple'
+                        ? 'bg-emerald-400'
+                        : item.estado_propuesto === 'no_cumple'
+                          ? 'bg-rose-400'
+                          : 'bg-blue-500';
+                    statusLabel =
+                      item.estado_propuesto === 'cumple'
+                        ? 'Revisión (Cumple)'
+                        : item.estado_propuesto === 'no_cumple'
+                          ? 'Revisión (No cumple)'
+                          : 'En revisión';
                   }
+
+                  const displayCode =
+                    item.codigo_req && item.codigo_req.startsWith('REQ-')
+                      ? item.codigo_req
+                      : `REQ-${item.numeral || item.codigo_req.slice(0, 6)}`;
 
                   return (
                     <div
-                      key={item.codigo_req}
-                      id={`focused-nav-item-${item.codigo_req}`}
+                      key={item.id || item.codigo_req}
+                      id={`focused-nav-item-${item.id}`}
                       onClick={() => handleSelectItem(item)}
                       className={`p-2.5 transition-colors cursor-pointer font-sans ${
                         isSelected
@@ -543,17 +584,20 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
                           : 'hover:bg-slate-50/80 dark:hover:bg-[#232323]'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-1.5 mb-1">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between gap-1.5 mb-1 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
                           <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
-                          <span className="font-semibold text-slate-900 dark:text-zinc-100 text-xs">
-                            {item.codigo_req}
+                          <span
+                            className="font-semibold text-slate-900 dark:text-zinc-100 text-xs truncate max-w-[80px]"
+                            title={item.codigo_req}
+                          >
+                            {displayCode}
                           </span>
-                          <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
+                          <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium shrink-0">
                             Numeral {item.numeral}
                           </span>
                         </div>
-                        <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">
+                        <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 shrink-0 whitespace-nowrap">
                           {statusLabel}
                         </span>
                       </div>
@@ -770,8 +814,18 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
                       <h4 className="text-xs font-semibold text-slate-900">
                         Evidencia Interna Contrastada
                       </h4>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        Cita Verificada 100%
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${
+                        selectedItem.evidencia?.cita_verificada
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : selectedItem.estado === 'cumple'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        {selectedItem.evidencia?.cita_verificada
+                          ? 'Cita Verificada 100%'
+                          : selectedItem.estado === 'cumple'
+                            ? 'Cumplimiento Verificado'
+                            : 'Pendiente de Acreditación'}
                       </span>
                     </div>
 
@@ -783,7 +837,9 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
                         <span className="font-semibold text-slate-800">
                           {selectedItem.evidencia?.fuente_nombre ||
                             selectedItem.evidencia_fuente ||
-                            'Contrato Obra Vial 2024-C08 (Pág. 12)'}
+                            (selectedItem.estado === 'cumple'
+                              ? 'Base de conocimiento de la empresa'
+                              : 'Sin documento soporte indexado')}
                         </span>
                       </div>
 
@@ -794,7 +850,11 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
                         <p className="italic text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-100 leading-relaxed">
                           {selectedItem.evidencia?.cita_literal ||
                             selectedItem.evidencia_fragmento ||
-                            '“Acreditación de 5.000 m² de pavimentación asfáltica en vías primarias...”'}
+                            (selectedItem.faltante
+                              ? selectedItem.faltante
+                              : selectedItem.estado === 'cumple'
+                                ? 'Condición acreditada satisfactoriamente con la información aportada de la empresa.'
+                                : 'No se identificó fragmento textual en los documentos cargados que acredite este requisito.')}
                         </p>
                       </div>
 
@@ -805,7 +865,10 @@ export const FocusedTenderPdfWorkspace: React.FC<FocusedTenderPdfWorkspaceProps>
                         <p className="text-slate-800 font-medium">
                           {selectedItem.faltante ||
                             selectedItem.brecha_identificada ||
-                            'Ninguno. Cumple con el metraje mínimo exigido de 4.000 m².'}
+                            (selectedItem.estado === 'cumple'
+                              ? 'Ninguna. Cumple satisfactoriamente con las exigencias del pliego.'
+                              : selectedItem.motivo_revision ||
+                                'Brecha identificada: la documentación registrada no respalda esta exigencia del pliego.')}
                         </p>
                       </div>
                     </div>

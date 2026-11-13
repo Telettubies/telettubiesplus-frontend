@@ -99,17 +99,66 @@ export function OriginalPdfCanvas({ id, url, item, page, zoom, onPages, search =
     return () => { alive = false; clearTimeout(timer); };
   }, [document, search]);
 
-  const zones = item?.backend_item?.ubicacion.zonas || item?.ubicacion.zonas.map(zone => ({ ...zone, pagina: item?.ubicacion.pagina || 1 })) || [];
+  const zones =
+    item?.backend_item?.ubicacion?.zonas ||
+    item?.ubicacion?.zonas?.map((zone) => ({
+      ...zone,
+      pagina: zone.pagina || item?.ubicacion?.pagina || 1,
+    })) ||
+    [];
   const visiblePage = Math.max(1, Math.min(page, document?.numPages || page || 1));
 
+  useEffect(() => {
+    if (!item) return;
+    const timer = setTimeout(() => {
+      const highlight = document.getElementById('pdf-highlight-zone');
+      if (highlight) {
+        highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        const pageEl = document.getElementById(`pdf-page-${visiblePage}`);
+        if (pageEl) {
+          pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [item?.id, item?.codigo_req, visiblePage]);
+
   return <div ref={host} className="w-full min-w-0 overflow-auto">
-    {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800">{error}<button className="ml-3 underline" onClick={() => retry(value => value + 1)}>Reintentar</button></div>}
+    {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800">{error}<button className="ml-3 underline cursor-pointer" onClick={() => retry(value => value + 1)}>Reintentar</button></div>}
     {searchMessage && <p role="status" className="p-2 text-xs text-slate-500">{searchMessage}</p>}
     {!blob && !error && <p role="status" className="p-8 text-xs text-slate-500">Cargando pliego original…</p>}
     {blob && <Document file={blob} onLoadSuccess={pdf => { setDocument(pdf); onPages(pdf.numPages); }} onLoadError={() => setError('No se pudo abrir el PDF.')} loading={<p className="p-6 text-xs">Preparando documento…</p>}>
-      <div className="relative mx-auto w-fit bg-white shadow-md">
-        <Page pageNumber={visiblePage} width={width * zoom / 100} renderAnnotationLayer={false} renderTextLayer={true} onRenderError={() => setError('No se pudo mostrar esta página.')}/>
-        {item?.ubicacion.precision !== 'solo_pagina' && zones.filter(zone => zone.pagina === visiblePage).map((zone, index) => <div key={index} className="pointer-events-none absolute border border-amber-500 bg-yellow-300/40" style={{ left: `${zone.x * 100}%`, top: `${zone.y * 100}%`, width: `${zone.width * 100}%`, height: `${zone.height * 100}%` }}/>) }
+      <div id={`pdf-page-${visiblePage}`} data-pdf-page={visiblePage} className="relative mx-auto w-fit bg-white shadow-md">
+        <Page
+          pageNumber={visiblePage}
+          width={width * zoom / 100}
+          renderAnnotationLayer={false}
+          renderTextLayer={true}
+          onRenderSuccess={() => {
+            setTimeout(() => {
+              const highlight = document.getElementById('pdf-highlight-zone');
+              if (highlight) {
+                highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }, 80);
+          }}
+          onRenderError={() => setError('No se pudo mostrar esta página.')}
+        />
+        {item?.ubicacion.precision !== 'solo_pagina' && zones.filter(zone => (zone.pagina || item?.ubicacion?.pagina || 1) === visiblePage).map((zone, index) => (
+          <div
+            key={index}
+            id={index === 0 ? 'pdf-highlight-zone' : undefined}
+            data-testid="pdf-highlight-zone"
+            className="pointer-events-none absolute border-2 border-amber-500 bg-yellow-300/40 rounded-xs shadow-xs transition-all duration-300"
+            style={{
+              left: `${zone.x * 100}%`,
+              top: `${zone.y * 100}%`,
+              width: `${zone.width * 100}%`,
+              height: `${zone.height * 100}%`,
+            }}
+          />
+        ))}
       </div>
     </Document>}
   </div>;

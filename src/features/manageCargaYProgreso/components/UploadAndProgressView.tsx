@@ -35,11 +35,19 @@ export const UploadAndProgressView: React.FC<UploadAndProgressViewProps> = ({
     submitUpload,
   } = usePdfUpload();
 
-  const [activeId,setActiveId]=useState(licitacionId);
+  const [activeId, setActiveId] = useState(licitacionId);
+  React.useEffect(() => {
+    if (licitacionId && licitacionId !== activeId) {
+      setActiveId(licitacionId);
+    }
+  }, [licitacionId]);
+
   const { progress, startPolling } = useAnalysisPolling({
-    licitacionId:activeId,
-    onComplete:()=>{if(!shouldUseMock())handleNavigateMatrix(activeId);},
-    enabled: initialMode === 'live_polling',
+    licitacionId: activeId,
+    onComplete: () => {
+      if (!shouldUseMock()) handleNavigateMatrix(activeId);
+    },
+    enabled: initialMode === 'live_polling' && Boolean(activeId && activeId !== 'LP-MIN-001-2026' || shouldUseMock()),
   });
 
   const [showEmptySelectionHint, setShowEmptySelectionHint] = useState(false);

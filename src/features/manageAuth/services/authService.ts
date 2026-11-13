@@ -64,7 +64,9 @@ export const authService = {
   async signUp(input: RegistrationInput): Promise<{ profile: PerfilMiembro | null; requiresEmailConfirmation: boolean }> {
     const email = input.email.trim().toLowerCase();
     if (shouldUseMock('VITE_MOCK_AUTH')) {
-      const id = crypto.randomUUID();
+      const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       const name = input.adminName.trim();
       const profile: PerfilMiembro = {
         id: `mem-${id}`, user_id: `usr-${id}`, nombre: name,

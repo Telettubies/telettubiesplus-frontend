@@ -18,7 +18,7 @@ describe('LoginForm y RegisterCompanyForm (CRITERIO Auth)', () => {
     expect(screen.getByText('CRITERIO')).toBeInTheDocument();
     expect(screen.getByText('Continue with Google')).toBeInTheDocument();
     expect(screen.getByTestId('session-expired-banner')).toHaveTextContent(
-      /session has expired due to inactivity/i
+      /Tu sesión expiró por inactividad|session has expired due to inactivity/i
     );
   });
 

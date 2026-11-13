@@ -20,6 +20,7 @@ it('true activa todos los mocks aunque queden flags granulares apagados',()=>{
  for(const key of ['VITE_MOCK_AUTH','VITE_MOCK_PANEL','VITE_MOCK_CONOCIMIENTO'])expect(shouldUseMock(key)).toBe(true);
  expect(shouldUseMock()).toBe(true);
  process.env.VITE_USE_MOCKS='false';expect(shouldUseMock()).toBe(false);expect(shouldUseMock('VITE_MOCK_AUTH')).toBe(false);
+ process.env.VITE_USE_MOCKS='true';
 });
 it('mantiene flags granulares cuando no se define el interruptor global',()=>{
  delete process.env.VITE_USE_MOCKS;expect(shouldUseMock('VITE_MOCK_PANEL')).toBe(false);process.env.VITE_MOCK_PANEL='true';expect(shouldUseMock('VITE_MOCK_PANEL')).toBe(true);
@@ -40,6 +41,7 @@ it('login original funciona sin consultar Supabase real',async()=>{
  expect(screen.getByTestId('profile')).toHaveTextContent('administrador');expect(realLogin).not.toHaveBeenCalled();
 });
 it('registro original conserva los cuatro pasos y crea un perfil de demo',async()=>{
+ process.env.VITE_MOCK_AUTH='true';
  render(<MemoryRouter initialEntries={['/registro']}><AuthProvider initialAuthenticated={false}><Routes><Route path="/registro" element={<RegisterCompanyForm/>}/><Route path="/licitaciones" element={<Profile/>}/></Routes></AuthProvider></MemoryRouter>);
  expect(screen.getByText('Registro de Organización en CRITERIO')).toBeInTheDocument();
  fireEvent.change(screen.getByLabelText(/Nombre o razón social/),{target:{value:'Empresa Mock Original'}});
@@ -49,7 +51,7 @@ it('registro original conserva los cuatro pasos y crea un perfil de demo',async(
  fireEvent.change(document.getElementById('reg-admin-pass')!,{target:{value:'Password123!'}});
  fireEvent.change(document.getElementById('reg-admin-confirm')!,{target:{value:'Password123!'}});
  fireEvent.click(screen.getByTestId('register-step-card-3'));expect(screen.getByText('Revise y confirme los datos de su organización')).toBeInTheDocument();
- fireEvent.click(screen.getByText('Crear cuenta e ingresar'));
+ fireEvent.submit(screen.getByTestId('register-submit-btn').closest('form')!);
  await waitFor(()=>expect(screen.getByTestId('profile')).toHaveTextContent('Empresa Mock Original'));
  expect(screen.getByTestId('profile')).toHaveTextContent('admin@mock.example');
 });

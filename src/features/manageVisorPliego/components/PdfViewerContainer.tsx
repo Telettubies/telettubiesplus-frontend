@@ -251,9 +251,16 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
 
       if (!matchesSearch) return false;
 
-      if (quickFilter === 'cumple') return item.estado === 'cumple';
+      if (quickFilter === 'cumple') {
+        return item.estado === 'cumple' || (item.estado === 'revision' && item.estado_propuesto === 'cumple');
+      }
       if (quickFilter === 'brechas') {
-        return item.estado === 'cumple_parcialmente' || item.estado === 'no_cumple';
+        return (
+          item.estado === 'cumple_parcialmente' ||
+          item.estado === 'no_cumple' ||
+          (item.estado === 'revision' &&
+            (item.estado_propuesto === 'no_cumple' || item.estado_propuesto === 'cumple_parcialmente'))
+        );
       }
       if (quickFilter === 'revision') return item.estado === 'revision';
       return true;
@@ -262,11 +269,20 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
 
   // Contadores para las pestañas de filtro de la tabla
   const counts = React.useMemo(() => {
+    const isCumple = (i: ItemVerificable) =>
+      i.estado === 'cumple' || (i.estado === 'revision' && i.estado_propuesto === 'cumple');
+    const isBrecha = (i: ItemVerificable) =>
+      i.estado === 'cumple_parcialmente' ||
+      i.estado === 'no_cumple' ||
+      (i.estado === 'revision' &&
+        (i.estado_propuesto === 'no_cumple' || i.estado_propuesto === 'cumple_parcialmente'));
+    const isRevision = (i: ItemVerificable) => i.estado === 'revision';
+
     return {
       todos: allItems.length,
-      cumple: allItems.filter((i) => i.estado === 'cumple').length,
-      brechas: allItems.filter((i) => i.estado === 'cumple_parcialmente' || i.estado === 'no_cumple').length,
-      revision: allItems.filter((i) => i.estado === 'revision').length,
+      cumple: allItems.filter(isCumple).length,
+      brechas: allItems.filter(isBrecha).length,
+      revision: allItems.filter(isRevision).length,
     };
   }, [allItems]);
 
@@ -477,8 +493,12 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
                       : item.estado === 'cumple_parcialmente'
                         ? 'bg-amber-500'
                         : item.estado === 'no_cumple'
-                          ? 'bg-red-500'
-                          : 'bg-blue-500';
+                          ? 'bg-rose-500'
+                          : item.estado_propuesto === 'cumple'
+                            ? 'bg-emerald-400'
+                            : item.estado_propuesto === 'no_cumple'
+                              ? 'bg-rose-400'
+                              : 'bg-blue-500';
 
                   const statusLabel =
                     item.estado === 'cumple'
@@ -487,12 +507,21 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
                         ? 'Parcial'
                         : item.estado === 'no_cumple'
                           ? 'No cumple'
-                          : 'Revisión';
+                          : item.estado_propuesto === 'cumple'
+                            ? 'Revisión (Cumple)'
+                            : item.estado_propuesto === 'no_cumple'
+                              ? 'Revisión (No cumple)'
+                              : 'Revisión';
+
+                  const displayCode =
+                    item.codigo_req && item.codigo_req.startsWith('REQ-')
+                      ? item.codigo_req
+                      : `REQ-${item.numeral || item.codigo_req.slice(0, 6)}`;
 
                   return (
                     <div
                       key={item.id}
-                      id={`quick-nav-item-${item.codigo_req}`}
+                      id={`quick-nav-item-${item.id}`}
                       role="button"
                       tabIndex={0}
                       onClick={() => handleJumpToRequirement(item)}
@@ -508,17 +537,20 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
                           : 'hover:bg-slate-50/80 dark:hover:bg-[#232323]'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-1.5 mb-1">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between gap-1.5 mb-1 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
                           <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
-                          <span className="font-semibold text-slate-900 dark:text-zinc-100 text-xs">
-                            {item.codigo_req}
+                          <span
+                            className="font-semibold text-slate-900 dark:text-zinc-100 text-xs truncate max-w-[80px]"
+                            title={item.codigo_req}
+                          >
+                            {displayCode}
                           </span>
-                          <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
+                          <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium shrink-0">
                             Numeral {item.numeral}
                           </span>
                         </div>
-                        <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">
+                        <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 shrink-0 whitespace-nowrap">
                           {statusLabel}
                         </span>
                       </div>

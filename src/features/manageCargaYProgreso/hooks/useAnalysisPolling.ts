@@ -30,7 +30,18 @@ export function useAnalysisPolling({
   onComplete,
 }: UseAnalysisPollingOptions) {
   const [progress, setProgress] = useState<ProgresoAnalisis>(
-    shouldUseMock()?(enabled ? MOCK_PROGRESO_EN_CURSO_ETAPA_4 : MOCK_PROGRESO_IDLE):{trabajo_id:'',licitacion_id:licitacionId,estado:'pendiente',etapa_actual:'En cola',etapa_indice:0,etapas_total:0,porcentaje:0,etapas:[]}
+    shouldUseMock()
+      ? (enabled ? MOCK_PROGRESO_EN_CURSO_ETAPA_4 : MOCK_PROGRESO_IDLE)
+      : {
+          trabajo_id: '',
+          licitacion_id: licitacionId,
+          estado: 'pendiente',
+          etapa_actual: 'En cola',
+          etapa_indice: 0,
+          etapas_total: 8,
+          porcentaje: 0,
+          etapas: [],
+        }
   );
   const [isPolling, setIsPolling] = useState<boolean>(enabled);
   const completeRef=useRef(onComplete);completeRef.current=onComplete;
@@ -70,7 +81,30 @@ export function useAnalysisPolling({
     const fetcher = customFetcher || cargaProgresoService.getAnalysisProgress;
     if(!shouldUseMock()){
       let alive=true;let pending:ReturnType<typeof setTimeout>;
-      const load=async()=>{try{const next=await fetcher(licitacionId,++tickRef.current);if(!alive)return;setProgress(next);if(next.estado==='completado'||next.estado==='error'){setIsPolling(false);if(next.estado==='completado')completeRef.current?.(next);}else pending=setTimeout(load,intervalMs);}catch(e){if(alive){setProgress(prev=>({...prev,estado:'error',mensaje_error:(e as Error).message||'No se pudo consultar el progreso.'}));setIsPolling(false);}}};
+      const load = async () => {
+        try {
+          const next = await fetcher(licitacionId, ++tickRef.current);
+          if (!alive) return;
+          setProgress(next);
+          if (next.estado === 'completado' || next.estado === 'error') {
+            setIsPolling(false);
+            if (next.estado === 'completado') completeRef.current?.(next);
+          } else {
+            pending = setTimeout(load, intervalMs);
+          }
+        } catch (e) {
+          if (alive) {
+            setProgress((prev) => ({
+              ...prev,
+              estado: 'error',
+              mensaje_error: (e as Error).message || 'No se pudo consultar el progreso.',
+              etapas_total: prev.etapas_total || prev.etapas.length || 8,
+              etapa_indice: prev.etapa_indice || 1,
+            }));
+            setIsPolling(false);
+          }
+        }
+      };
       void load();return()=>{alive=false;clearTimeout(pending);};
     }
 

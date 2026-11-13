@@ -237,9 +237,11 @@ export const ReviewInboxDrawer: React.FC<ReviewInboxDrawerProps> = ({
                       : 'cumple'
                   }
                   initialComment={
-                    scenario === 'no_cumple_warn' || scenario === 'recalculating'
-                      ? 'La evidencia 2024-C08 acredita arrendamiento operativo; la cláusula exige propiedad o leasing financiero. No cumple la redacción literal.'
-                      : ''
+                    !shouldUseMock()
+                      ? ''
+                      : scenario === 'no_cumple_warn' || scenario === 'recalculating'
+                        ? 'La evidencia no acredita la totalidad de la condición requerida. No cumple la redacción literal.'
+                        : ''
                   }
                   forceValidationError={scenario === 'validation_err'}
                   isSubmitting={isSubmitting}
