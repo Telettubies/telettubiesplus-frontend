@@ -1,5 +1,4 @@
-# Build estatico y publicacion en la EC2 existente; Caddy sirve los archivos.
-# Configuracion y montaje inicial: seccion CI/CD en README.md.
+# Imagen de produccion en GHCR; entorno publico desde el .env.production de la VM.
 name: CD
 
 on:
@@ -15,53 +14,55 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  despliegue:
-    name: Construir y publicar frontend en EC2
+  imagen:
     if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      imagen: ${{ steps.nombre.outputs.imagen }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Nombre de imagen
+        id: nombre
+        run: echo "imagen=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@v4
+        if: ${{ vars.PLATAFORMA == 'linux/arm64' }}
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ vars.PLATAFORMA || 'linux/amd64' }}
+          push: true
+          build-args: REVISION=${{ github.sha }}
+          tags: |
+            ${{ steps.nombre.outputs.imagen }}:${{ github.sha }}
+            ${{ steps.nombre.outputs.imagen }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  despliegue:
+    name: Desplegar frontend en EC2
+    needs: imagen
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: produccion
+    permissions:
+      contents: read
+      packages: read
     env:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_USUARIO: ${{ secrets.EC2_USUARIO }}
       DIRECTORIO: ${{ vars.EC2_DIRECTORIO || 'analizador-frontend' }}
       FRONTEND_URL: ${{ vars.FRONTEND_URL || 'https://criterio.duckdns.org' }}
-      REVISION: ${{ github.sha }}
-      VERSION: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-          cache: npm
-
-      - name: Instalar dependencias
-        run: npm ci --include=dev
-
-      - name: Construir con la configuracion publica de produccion
-        env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://telettubies-api.duckdns.org/api/v1' }}
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://etedmckzqceqygbdkzng.supabase.co' }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
-          VITE_USE_MOCKS: "false"
-        run: |
-          set -euo pipefail
-          [[ "$VITE_API_BASE_URL" == https://*/api/v1 ]] || { echo '::error::VITE_API_BASE_URL debe ser https://<dominio-api>/api/v1'; exit 1; }
-          [[ "$VITE_SUPABASE_URL" == https://* ]] || exit 1
-          # Impedir que una clave privilegiada se incorpore al JavaScript publico.
-          [[ -n "$VITE_SUPABASE_ANON_KEY" ]] || { echo '::error::Configura la variable de repositorio VITE_SUPABASE_ANON_KEY con la clave publica del proyecto.'; exit 1; }
-          node <<'JS'
-          const key = process.env.VITE_SUPABASE_ANON_KEY;
-          if (!key.startsWith('sb_publishable_')) {
-            const payload = JSON.parse(Buffer.from(key.split('.')[1] || '', 'base64url').toString());
-            if (payload.role !== 'anon') throw new Error('Usar una clave publica anon o publishable');
-          }
-          JS
-          npm run build
-          printf '%s\n' "$REVISION" > dist/version.txt
-          tar -czf frontend.tar.gz -C dist .
-
       - name: Configurar SSH con identidad del servidor verificada
         env:
           EC2_LLAVE_SSH: ${{ secrets.EC2_LLAVE_SSH }}
@@ -92,7 +93,7 @@ jobs:
           EOF
           chmod 600 ~/.ssh/config
 
-      - name: Preparar carpeta y copiar el build
+      - name: Copiar Compose sin sobrescribir el entorno
         run: |
           set -euo pipefail
           ssh ec2 "bash -s -- $(printf '%q ' "$DIRECTORIO")" <<'EOF'
@@ -100,63 +101,48 @@ jobs:
           directorio=$(realpath -m -- "$1")
           [[ "$directorio" != / && "$directorio" != "$HOME" ]] || exit 1
           if [[ -f "$directorio/docker-compose.prod.yml" ]] && grep -q BACKEND_IMAGE "$directorio/docker-compose.prod.yml"; then
-            echo 'EC2_DIRECTORIO apunta al backend. Elegir la carpeta del frontend.' >&2
+            echo 'EC2_DIRECTORIO apunta al backend; elegir una carpeta separada.' >&2
             exit 1
           fi
-          mkdir -p -- "$directorio/releases"
+          mkdir -p -- "$directorio"
           EOF
-          scp frontend.tar.gz "ec2:$DIRECTORIO/upload-$VERSION.tar.gz"
-
-      - name: Publicar la version mediante un cambio atomico
+          scp docker-compose.prod.yml .env.prod.example "ec2:$DIRECTORIO/"
+      - name: Descargar, recrear y verificar version
+        env:
+          IMAGEN: ${{ needs.imagen.outputs.imagen }}
+          TAG: ${{ github.sha }}
+          GHCR_USUARIO: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          ssh ec2 "bash -s -- $(printf '%q ' "$DIRECTORIO" "$VERSION" "$REVISION")" <<'EOF'
+          printf '%s' "$GHCR_TOKEN" | ssh ec2 "docker login ghcr.io -u '$GHCR_USUARIO' --password-stdin"
+          ssh ec2 "bash -s -- $(printf '%q ' "$DIRECTORIO" "$IMAGEN" "$TAG" "$FRONTEND_URL")" <<'EOF'
           set -euo pipefail
           cd "$1"
-          [[ "$2" =~ ^[a-f0-9]{40}-[0-9]+-[0-9]+$ ]] || exit 1
-          umask 022
-          version="releases/$2"
-          mkdir -- "$version"
-          tar -xzf "upload-$2.tar.gz" --no-same-owner --no-same-permissions -C "$version"
-          test -s "$version/index.html"
-          [[ "$(cat "$version/version.txt")" == "$3" ]] || exit 1
-          anterior=$(readlink current || true)
-          if [[ -e current && ! -L current ]]; then
-            echo 'current debe ser un enlace de este CD, no una carpeta existente.' >&2
-            exit 1
+          trap 'docker logout ghcr.io >/dev/null' EXIT
+          test -f .env.production || { echo 'Falta .env.production del frontend en la VM.' >&2; exit 1; }
+          export FRONTEND_IMAGE="$2" FRONTEND_TAG="$3"
+          COMPOSE='docker compose --env-file .env.production -f docker-compose.prod.yml'
+          anterior=$($COMPOSE ps -q frontend | xargs -r docker inspect --format '{{.Config.Image}}')
+          $COMPOSE pull frontend
+          if $COMPOSE up -d --no-build --wait --wait-timeout 120; then
+            for _ in $(seq 1 12); do
+              if [[ "$(curl --fail --silent --show-error --max-time 15 --proto '=https' "${4%/}/version.txt")" == "$3" ]]; then
+                echo "Desplegado $2:$3"
+                exit 0
+              fi
+              sleep 5
+            done
           fi
-          printf '%s\n' "$anterior" > ".previous-$2"
-          ln -s "$version" ".current-$2"
-          mv -Tf -- ".current-$2" current
-          rm -f -- "upload-$2.tar.gz"
-          echo "Publicado $3"
-          EOF
-
-      - name: Comprobar el SHA servido por Caddy y recuperar si falla
-        run: |
-          set -euo pipefail
-          for _ in $(seq 1 12); do
-            if [[ "$(curl --fail --silent --show-error --location --max-time 15 --proto '=https' --proto-redir '=https' "${FRONTEND_URL%/}/version.txt")" == "$REVISION" ]]; then
-              ssh ec2 "rm -f -- '$DIRECTORIO/.previous-$VERSION'"
-              exit 0
-            fi
-            sleep 5
-          done
-          ssh ec2 "bash -s -- $(printf '%q ' "$DIRECTORIO" "$VERSION")" <<'EOF'
-          set -euo pipefail
-          cd "$1"
-          anterior=$(cat ".previous-$2")
-          if [[ "$anterior" =~ ^releases/[a-f0-9]{40}-[0-9]+-[0-9]+$ && -s "$anterior/index.html" ]]; then
-            ln -s "$anterior" ".rollback-$2"
-            mv -Tf -- ".rollback-$2" current
-            echo 'Recuperada la version anterior.'
-          else
-            echo 'No hay una version anterior de este CD que recuperar.' >&2
+          $COMPOSE logs --tail=100 frontend
+          if [[ -n "$anterior" ]]; then
+            export FRONTEND_IMAGE="${anterior%:*}" FRONTEND_TAG="${anterior##*:}"
+            $COMPOSE up -d --no-build --wait --wait-timeout 120
+            echo 'Restaurada la imagen anterior; se conserva el .env.production actual.'
           fi
-          rm -f -- ".previous-$2"
-          EOF
-          echo '::error::Caddy no devuelve el SHA publicado. Revisar dominio, volumen y permisos (README.md).'
+          echo '::error::Fallo del despliegue o de HTTPS; revisar Caddy, red y .env.'
           exit 1
+          EOF
 
       - name: Limpiar llave SSH
         if: always()

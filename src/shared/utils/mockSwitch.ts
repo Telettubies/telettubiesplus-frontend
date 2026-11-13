@@ -4,6 +4,11 @@ declare const __VITE_ENV__: Record<string, string> | undefined;
  * Helper seguro para leer variables de entorno tanto en Vite (navegador) como en Jest/Node.
  */
 export function getEnvVar(key: string): string | undefined {
+  // El archivo cargado antes del bundle permite cambiar el .env sin reconstruir la imagen.
+  const runtimeEnv = (globalThis as any).__RUNTIME_ENV__;
+  if (runtimeEnv && runtimeEnv[key] !== undefined) {
+    return String(runtimeEnv[key]);
+  }
   try {
     if (typeof __VITE_ENV__ !== 'undefined' && __VITE_ENV__ && __VITE_ENV__[key] !== undefined) {
       return String(__VITE_ENV__[key]);

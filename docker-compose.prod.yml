@@ -1,0 +1,24 @@
+# La red la crea primero el Compose del backend. Solo el proxy compartido publica puertos.
+name: analizador-frontend
+services:
+  frontend:
+    image: ${FRONTEND_IMAGE:-analizador-frontend}:${FRONTEND_TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        REVISION: ${FRONTEND_TAG:-local}
+    env_file: .env.production
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      interna:
+        aliases: [frontend]
+networks:
+  interna:
+    external: true
+    name: ${BACKEND_NETWORK:-analizador_interna}

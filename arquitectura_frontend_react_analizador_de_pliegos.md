@@ -225,7 +225,7 @@ Permite cambiar entre datos simulados y el backend real de FastAPI mediante vari
 
 ```dotenv
 # .env.local
-VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_API_BASE_URL=http://localhost:8000/api
 VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
 
