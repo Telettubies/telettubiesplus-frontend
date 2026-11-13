@@ -125,116 +125,102 @@ frontend/
 - `npm run test`: Ejecuta el conjunto de pruebas unitarias con Jest.
 - `npm run test:e2e`: Ejecuta las pruebas de integracion end-to-end con Playwright.
 
-## CI/CD del frontend
+## Produccion con Docker Compose
 
-El workflow [CI](.github/workflows/ci.yml) instala las dependencias con `npm ci`
-y construye el frontend en cada PR hacia `main`, con configuracion ficticia y sin secretos.
+El frontend dispone de Dockerfile y Compose propios, como el backend. La imagen
+compila con Node 22 y sirve `dist` con Caddy en el puerto interno 8080. El proxy
+compartido del backend termina HTTPS y dirige las peticiones a `frontend:8080`.
+Los dos Compose comparten la red `analizador_interna`; solo el proxy publica puertos.
+Levantar primero el backend para crear esa red (ADR-016).
 
-El workflow [CD](.github/workflows/cd.yml) construye el frontend en GitHub al recibir
-cambios en `main` y copia el build por SSH a `~/analizador-frontend` en la EC2
-existente. El Caddy compartido sirve los archivos directamente por HTTPS.
-El build de produccion desactiva los mocks. Este despliegue estatico implementa
-la responsabilidad de C-12 y la ubicacion del frontend descritas en el DAS 6.5;
-el proxy sigue ejecutandose con Docker Compose (ADR-016).
+### Entorno en la VM
 
-En este repositorio, configurar los siguientes secretos de Actions (de repositorio
-o del environment `produccion`):
-
-- `EC2_HOST`: IP o DNS SSH de la VM existente, sin protocolo ni ruta.
-- `EC2_USUARIO`: usuario SSH con permiso de escritura en la carpeta del frontend.
-- `EC2_LLAVE_SSH`: contenido completo de la llave privada, guardado en GitHub Secrets.
-- `EC2_KNOWN_HOSTS`: identidad publica SSH verificada del servidor, con formato
-  `<mismo valor de EC2_HOST> ssh-ed25519 <clave publica del servidor>`.
-
-Variable de repositorio obligatoria en Actions:
-
-- `VITE_SUPABASE_ANON_KEY`: clave publica `publishable` o `anon` del proyecto
-  Supabase. Su valor se configura en GitHub Variables, fuera del codigo versionado.
-  Es configuracion publica del navegador; nunca usar `service_role` ni claves privadas.
-
-Variables de repositorio opcionales:
-
-- `EC2_DIRECTORIO`: `analizador-frontend` por defecto, distinto de la carpeta del backend.
-- `FRONTEND_URL`: `https://criterio.duckdns.org` por defecto.
-- `VITE_API_BASE_URL`: `https://telettubies-api.duckdns.org/api` por defecto.
-- `VITE_SUPABASE_URL`: permite reemplazar la URL publica del proyecto conectado.
-
-Las variables antiguas `BACKEND_NETWORK` y `PLATAFORMA` ya no se utilizan.
-
-### Configuracion unica del Caddy existente
-
-En la VM, crear la carpeta como el usuario SSH antes de montar el volumen:
+Guardar el entorno publico en `~/analizador-frontend/.env.production`, junto al Compose del
+frontend. Copiar `.env.prod.example` y completar las URLs HTTPS y la clave publica
+Supabase. Nunca copiar el `.env` privado del backend a esta carpeta.
+`VITE_API_BASE_URL` debe ser `https://<dominio-api>/api` (sin `/v1`):
+el backend registra sus rutas bajo `/api` y Caddy conserva ese prefijo.
 
 ```bash
-mkdir -p "$HOME/analizador-frontend/releases"
+cd ~/analizador-frontend
+cp .env.prod.example .env.production
+nano .env.production
+chmod 600 .env.production
 ```
 
-En el `docker-compose.prod.yml` del backend, agregar este volumen al servicio
-`caddy`, conservando los existentes:
-
-```yaml
-- ${FRONTEND_DIRECTORIO:-../analizador-frontend}:/srv/frontend:ro
-```
-
-La ruta predeterminada supone que el backend esta en `~/analizador`. Si el
-frontend se publica en otra carpeta, definir `FRONTEND_DIRECTORIO` con esa ruta
-absoluta en el `.env` del backend y `EC2_DIRECTORIO` con la misma ruta en Actions.
-Se monta la carpeta padre para que Caddy pueda seguir el enlace `current` al cambiarlo.
-
-En el Caddyfile, reemplazar el sitio anterior del frontend por:
-
-```caddyfile
-{$FRONTEND_DOMAIN:http://frontend.localhost} {
-    encode zstd gzip
-    root * /srv/frontend/current
-    handle /assets/* {
-        header Cache-Control "public, max-age=31536000, immutable"
-        file_server
-    }
-    handle /version.txt {
-        header Cache-Control "no-store"
-        file_server
-    }
-    handle {
-        header Cache-Control "no-cache"
-        try_files {path} /index.html
-        file_server
-    }
-}
-```
-
-El `.env` del backend debe contener `FRONTEND_DOMAIN=criterio.duckdns.org` y
-`CORS_ORIGINS=https://criterio.duckdns.org`. Mantener el bloque existente de la API.
-Los ajustes completos del proxy, incluidas las cabeceras de seguridad, estan en
-`telettubiesplus-backend/deploy/Caddyfile` y `docker-compose.prod.yml`; conservarlos
-en su repositorio para que el siguiente CD del backend mantenga la configuracion.
-
-Una vez actualizados ambos archivos en la VM, aplicar el montaje desde la carpeta
-del backend. Este paso recrea solo el proxy y puede interrumpir el acceso brevemente:
+El contenedor genera `/runtime-config.js` antes de iniciar el servidor. La aplicacion
+lee esta configuracion antes que las variables compiladas por Vite. Solo publica
+`VITE_API_BASE_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` y fuerza
+`VITE_USE_MOCKS=false`. Las URLs deben usar HTTPS y la clave debe ser publishable o
+anon. Las claves secret y service_role se rechazan. Este archivo no se almacena en
+cache. Cambiar el entorno requiere recrear el contenedor, sin recompilar la imagen:
 
 ```bash
-cd "$HOME/analizador"
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --no-build --force-recreate --wait frontend
+```
+
+### Construccion local o imagen publicada
+
+Con el codigo fuente completo en esa carpeta, usar una imagen local:
+
+```bash
+FRONTEND_IMAGE=analizador-frontend FRONTEND_TAG=local docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build --wait
+```
+
+Para operar solo con archivos de despliegue, configurar `FRONTEND_IMAGE` y
+`FRONTEND_TAG` en `.env.production` con una imagen ya publicada en GHCR. Usar el SHA permite
+fijar una version. Si el paquete es privado, ejecutar antes `docker login ghcr.io`
+con una cuenta autorizada para leerlo.
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml pull frontend
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --no-build --wait
+docker compose --env-file .env.production -f docker-compose.prod.yml ps
+docker compose --env-file .env.production -f docker-compose.prod.yml logs --tail=100 frontend
+```
+
+No ejecutar estos comandos desde `~/analizador`: ese Compose corresponde al backend.
+`BACKEND_NETWORK` permite cambiar la red externa si tiene otro nombre. El alias
+`frontend` debe ser unico en esa red.
+
+### Migracion del proxy compartido
+
+Los cambios en `telettubiesplus-backend/deploy/Caddyfile` y su Compose sustituyen
+el montaje de archivos por `reverse_proxy frontend:8080`. Mantener en el `.env`
+del backend `FRONTEND_DOMAIN=app.ejemplo.com` y
+`CORS_ORIGINS=https://app.ejemplo.com`, con el dominio real. Con el frontend ya
+iniciado y ambos archivos actualizados en la VM, recrear el proxy una sola vez:
+
+```bash
+cd ~/analizador
 docker compose -f docker-compose.prod.yml up -d --no-deps --force-recreate caddy
 ```
 
-El volumen requiere esa recreacion inicial; los siguientes CD del frontend solo
-cambian los archivos y el enlace `current`, sin reiniciar el proxy. Antes de la
-primera publicacion, el dominio del frontend puede responder 404.
+Las carpetas antiguas `releases` y `current` dejan de utilizarse; no se borran.
+La configuracion del backend y de su CD permanece independiente.
 
-Para publicar, abrir un PR de la rama de trabajo hacia `main`, esperar el CI y
-fusionar. En Actions, el CD debe completar el trabajo de build y publicacion.
-Una ejecucion manual del CD tambien debe seleccionar `main`.
+### CD con imagen
 
-La logica de despliegue esta integrada en `.github/workflows/cd.yml`. El CD crea
-`releases/<sha>-<ejecucion>-<intento>` y cambia atomicamente el enlace relativo
-`current` a esa carpeta, despues de copiar el build completo. Se conservan las
-versiones anteriores. El frontend no necesita `.env` en la VM: su configuracion
-publica se incorpora al JavaScript durante el build.
+El workflow [CD](.github/workflows/cd.yml) publica imagenes `:<sha>` y `:latest`
+en GHCR al recibir cambios en `main`, o al ejecutarse manualmente sobre `main`.
+Despues copia el Compose a la VM y recrea el frontend con la imagen del commit.
+Conserva SSH con identidad verificada, comprueba el SHA servido por HTTPS y
+restaura la imagen anterior si falla y existe una version previa. El `.env.production`
+permanece en la VM y no se sobrescribe. El historial de esta migracion esta en
+[deploy/CD-propuesto.md](deploy/CD-propuesto.md).
 
-La comprobacion HTTPS exige que `/version.txt` devuelva el SHA publicado. Si falla,
-el CD restaura el enlace a la version anterior cuando existe y termina con error.
-En la primera publicacion no hay una version anterior que recuperar. Este chequeo
-confirma la publicacion y el acceso por Caddy; no ejercita los flujos de negocio.
+Los secretos SSH actuales son `EC2_HOST`, `EC2_USUARIO`,
+`EC2_LLAVE_SSH` y `EC2_KNOWN_HOSTS`. Las variables de Actions son
+`EC2_DIRECTORIO` (predeterminado `analizador-frontend`), `FRONTEND_URL` y
+`PLATAFORMA` (`linux/amd64` o `linux/arm64`). Las variables VITE se leen del `.env.production`
+de la VM y ya no son necesarias en GitHub.
+
+Verificaciones locales sin servicios externos:
+
+```bash
+node --test scripts/runtime-config.test.mjs
+npm run build
+```
 
 ## Licencia
 
