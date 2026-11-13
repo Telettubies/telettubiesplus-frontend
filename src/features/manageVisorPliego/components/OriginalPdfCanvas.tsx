@@ -103,7 +103,7 @@ export function OriginalPdfCanvas({ id, url, item, page, zoom, onPages, search =
     item?.backend_item?.ubicacion?.zonas ||
     item?.ubicacion?.zonas?.map((zone) => ({
       ...zone,
-      pagina: zone.pagina || item?.ubicacion?.pagina || 1,
+      pagina: item?.ubicacion?.pagina || 1,
     })) ||
     [];
   const visiblePage = Math.max(1, Math.min(page, document?.numPages || page || 1));
@@ -111,11 +111,11 @@ export function OriginalPdfCanvas({ id, url, item, page, zoom, onPages, search =
   useEffect(() => {
     if (!item) return;
     const timer = setTimeout(() => {
-      const highlight = document.getElementById('pdf-highlight-zone');
+      const highlight = window.document.getElementById('pdf-highlight-zone');
       if (highlight) {
         highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else {
-        const pageEl = document.getElementById(`pdf-page-${visiblePage}`);
+        const pageEl = window.document.getElementById(`pdf-page-${visiblePage}`);
         if (pageEl) {
           pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -137,7 +137,7 @@ export function OriginalPdfCanvas({ id, url, item, page, zoom, onPages, search =
           renderTextLayer={true}
           onRenderSuccess={() => {
             setTimeout(() => {
-              const highlight = document.getElementById('pdf-highlight-zone');
+              const highlight = window.document.getElementById('pdf-highlight-zone');
               if (highlight) {
                 highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
               }
@@ -145,7 +145,7 @@ export function OriginalPdfCanvas({ id, url, item, page, zoom, onPages, search =
           }}
           onRenderError={() => setError('No se pudo mostrar esta página.')}
         />
-        {item?.ubicacion.precision !== 'solo_pagina' && zones.filter(zone => (zone.pagina || item?.ubicacion?.pagina || 1) === visiblePage).map((zone, index) => (
+        {item?.ubicacion.precision !== 'solo_pagina' && zones.filter(zone => (item?.ubicacion?.pagina || 1) === visiblePage).map((zone, index) => (
           <div
             key={index}
             id={index === 0 ? 'pdf-highlight-zone' : undefined}

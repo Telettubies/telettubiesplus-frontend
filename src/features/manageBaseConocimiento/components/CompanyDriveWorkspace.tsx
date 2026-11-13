@@ -1,3 +1,4 @@
+import { CompanyDocuments } from '@/features/connected/CompanyDocuments';
 import { services } from '@/features/connected/services';
 import { useAuth } from '@/shared/hooks/useAuth';
 import React, { useState, useRef, useMemo } from "react";
@@ -497,6 +498,7 @@ export const CompanyDriveWorkspace: React.FC = () => {
       onDrop={handleFileDrop}
       className="space-y-6 font-sans relative"
     >
+      {!isMockEnabled && <CompanyDocuments organizacionId={user?.organizacion_id} canEdit={user?.rol === "administrador"} onChanged={() => reloadBackend(v => v + 1)}/>}
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
@@ -575,7 +577,7 @@ export const CompanyDriveWorkspace: React.FC = () => {
             Capacidad Utilizada
           </span>
           <p className="text-base font-bold text-slate-800">
-            {files.length === 0 ? "0.0 MB" : "71.2 MB"} / 5 GB
+            {isMockEnabled ? `${files.length === 0 ? "0.0 MB" : "71.2 MB"} / 5 GB` : "Sin dato de almacenamiento"}
           </p>
         </div>
       </div>

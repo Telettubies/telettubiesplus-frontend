@@ -1,3 +1,4 @@
+import { ChatIndexRecovery } from '@/features/connected/ChatIndexRecovery';
 import React, { useState, useRef, useEffect } from 'react';
 import { shouldUseMock } from '@/shared/utils/mockSwitch';
 import { services } from '@/features/connected/services';
@@ -111,6 +112,7 @@ export const TenderChatPanel: React.FC<TenderChatPanelProps> = ({
       id="tour-step-chat-assistant"
       className="w-full bg-white border border-slate-200/80 rounded-2xl shadow-card flex flex-col min-h-[660px] h-[calc(100vh-210px)] max-h-[880px] overflow-hidden font-sans"
     >
+      {!shouldUseMock('VITE_MOCK_CHAT') && <ChatIndexRecovery licitacionId={licitacionId}/>}
       {/* Top Chat Header - Limpio sin contexto global */}
       <div className="px-6 py-4 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
         <div className="flex items-center gap-3">
