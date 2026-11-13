@@ -146,13 +146,18 @@ o del environment `produccion`):
 - `EC2_KNOWN_HOSTS`: identidad publica SSH verificada del servidor, con formato
   `<mismo valor de EC2_HOST> ssh-ed25519 <clave publica del servidor>`.
 
+Variable de repositorio obligatoria en Actions:
+
+- `VITE_SUPABASE_ANON_KEY`: clave publica `publishable` o `anon` del proyecto
+  Supabase. Su valor se configura en GitHub Variables, fuera del codigo versionado.
+  Es configuracion publica del navegador; nunca usar `service_role` ni claves privadas.
+
 Variables de repositorio opcionales:
 
 - `EC2_DIRECTORIO`: `analizador-frontend` por defecto, distinto de la carpeta del backend.
 - `FRONTEND_URL`: `https://criterio.duckdns.org` por defecto.
 - `VITE_API_BASE_URL`: `https://telettubies-api.duckdns.org/api/v1` por defecto.
-- `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`: permiten reemplazar la URL y la
-  clave publica del proyecto conectado que ya incluye el workflow. Nunca usar claves privadas.
+- `VITE_SUPABASE_URL`: permite reemplazar la URL publica del proyecto conectado.
 
 Las variables antiguas `BACKEND_NETWORK` y `PLATAFORMA` ya no se utilizan.
 

@@ -43,13 +43,14 @@ jobs:
         env:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://telettubies-api.duckdns.org/api/v1' }}
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://etedmckzqceqygbdkzng.supabase.co' }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || 'sb_publishable_pxsvpqNiwmAGyAHBWS2b2Q_N9J8MZuv' }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
           VITE_USE_MOCKS: "false"
         run: |
           set -euo pipefail
           [[ "$VITE_API_BASE_URL" == https://*/api/v1 ]] || { echo '::error::VITE_API_BASE_URL debe ser https://<dominio-api>/api/v1'; exit 1; }
           [[ "$VITE_SUPABASE_URL" == https://* ]] || exit 1
           # Impedir que una clave privilegiada se incorpore al JavaScript publico.
+          [[ -n "$VITE_SUPABASE_ANON_KEY" ]] || { echo '::error::Configura la variable de repositorio VITE_SUPABASE_ANON_KEY con la clave publica del proyecto.'; exit 1; }
           node <<'JS'
           const key = process.env.VITE_SUPABASE_ANON_KEY;
           if (!key.startsWith('sb_publishable_')) {

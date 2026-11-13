@@ -11,11 +11,24 @@ build/
 
 # Environment variables & secrets
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
 !.env.example
+
+# Private keys and local cloud credentials
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+id_ecdsa
+id_ecdsa.*
+id_ed25519
+id_ed25519.*
+id_dsa
+id_dsa.*
+.ssh/
+.aws/
 
 # Test outputs and reports
 coverage/
