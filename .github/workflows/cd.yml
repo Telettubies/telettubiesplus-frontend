@@ -1,0 +1,163 @@
+# Build estatico y publicacion en la EC2 existente; Caddy sirve los archivos.
+# Configuracion y montaje inicial: seccion CI/CD en README.md.
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: despliegue-frontend-produccion
+  cancel-in-progress: false
+
+jobs:
+  despliegue:
+    name: Construir y publicar frontend en EC2
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: produccion
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USUARIO: ${{ secrets.EC2_USUARIO }}
+      DIRECTORIO: ${{ vars.EC2_DIRECTORIO || 'analizador-frontend' }}
+      FRONTEND_URL: ${{ vars.FRONTEND_URL || 'https://criterio.duckdns.org' }}
+      REVISION: ${{ github.sha }}
+      VERSION: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci --include=dev
+
+      - name: Construir con la configuracion publica de produccion
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://telettubies-api.duckdns.org/api/v1' }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://etedmckzqceqygbdkzng.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_USE_MOCKS: "false"
+        run: |
+          set -euo pipefail
+          [[ "$VITE_API_BASE_URL" == https://*/api/v1 ]] || { echo '::error::VITE_API_BASE_URL debe ser https://<dominio-api>/api/v1'; exit 1; }
+          [[ "$VITE_SUPABASE_URL" == https://* ]] || exit 1
+          # Impedir que una clave privilegiada se incorpore al JavaScript publico.
+          [[ -n "$VITE_SUPABASE_ANON_KEY" ]] || { echo '::error::Configura la variable de repositorio VITE_SUPABASE_ANON_KEY con la clave publica del proyecto.'; exit 1; }
+          node <<'JS'
+          const key = process.env.VITE_SUPABASE_ANON_KEY;
+          if (!key.startsWith('sb_publishable_')) {
+            const payload = JSON.parse(Buffer.from(key.split('.')[1] || '', 'base64url').toString());
+            if (payload.role !== 'anon') throw new Error('Usar una clave publica anon o publishable');
+          }
+          JS
+          npm run build
+          printf '%s\n' "$REVISION" > dist/version.txt
+          tar -czf frontend.tar.gz -C dist .
+
+      - name: Configurar SSH con identidad del servidor verificada
+        env:
+          EC2_LLAVE_SSH: ${{ secrets.EC2_LLAVE_SSH }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for nombre in EC2_HOST EC2_USUARIO EC2_LLAVE_SSH EC2_KNOWN_HOSTS FRONTEND_URL; do
+            [[ -n "${!nombre}" ]] || { echo "::error::Falta configurar $nombre (README.md)"; exit 1; }
+          done
+          [[ "$EC2_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]] || exit 1
+          [[ "$EC2_USUARIO" =~ ^[a-z_][a-z0-9_-]*$ ]] || exit 1
+          [[ "$DIRECTORIO" =~ ^[a-zA-Z0-9_/-]+$ && "$DIRECTORIO" != -* ]] || exit 1
+          [[ "$FRONTEND_URL" == https://* ]] || exit 1
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$EC2_LLAVE_SSH" > ~/.ssh/ec2
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/ec2 ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host ec2
+            HostName $EC2_HOST
+            User $EC2_USUARIO
+            IdentityFile ~/.ssh/ec2
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            BatchMode yes
+            ConnectTimeout 15
+            ServerAliveInterval 30
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Preparar carpeta y copiar el build
+        run: |
+          set -euo pipefail
+          ssh ec2 "bash -s -- $(printf '%q ' "$DIRECTORIO")" <<'EOF'
+          set -euo pipefail
+          directorio=$(realpath -m -- "$1")
+          [[ "$directorio" != / && "$directorio" != "$HOME" ]] || exit 1
+          if [[ -f "$directorio/docker-compose.prod.yml" ]] && grep -q BACKEND_IMAGE "$directorio/docker-compose.prod.yml"; then
+            echo 'EC2_DIRECTORIO apunta al backend. Elegir la carpeta del frontend.' >&2
+            exit 1
+          fi
+          mkdir -p -- "$directorio/releases"
+          EOF
+          scp frontend.tar.gz "ec2:$DIRECTORIO/upload-$VERSION.tar.gz"
+
+      - name: Publicar la version mediante un cambio atomico
+        run: |
+          set -euo pipefail
+          ssh ec2 "bash -s -- $(printf '%q ' "$DIRECTORIO" "$VERSION" "$REVISION")" <<'EOF'
+          set -euo pipefail
+          cd "$1"
+          [[ "$2" =~ ^[a-f0-9]{40}-[0-9]+-[0-9]+$ ]] || exit 1
+          umask 022
+          version="releases/$2"
+          mkdir -- "$version"
+          tar -xzf "upload-$2.tar.gz" --no-same-owner --no-same-permissions -C "$version"
+          test -s "$version/index.html"
+          [[ "$(cat "$version/version.txt")" == "$3" ]] || exit 1
+          anterior=$(readlink current || true)
+          if [[ -e current && ! -L current ]]; then
+            echo 'current debe ser un enlace de este CD, no una carpeta existente.' >&2
+            exit 1
+          fi
+          printf '%s\n' "$anterior" > ".previous-$2"
+          ln -s "$version" ".current-$2"
+          mv -Tf -- ".current-$2" current
+          rm -f -- "upload-$2.tar.gz"
+          echo "Publicado $3"
+          EOF
+
+      - name: Comprobar el SHA servido por Caddy y recuperar si falla
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 12); do
+            if [[ "$(curl --fail --silent --show-error --location --max-time 15 --proto '=https' --proto-redir '=https' "${FRONTEND_URL%/}/version.txt")" == "$REVISION" ]]; then
+              ssh ec2 "rm -f -- '$DIRECTORIO/.previous-$VERSION'"
+              exit 0
+            fi
+            sleep 5
+          done
+          ssh ec2 "bash -s -- $(printf '%q ' "$DIRECTORIO" "$VERSION")" <<'EOF'
+          set -euo pipefail
+          cd "$1"
+          anterior=$(cat ".previous-$2")
+          if [[ "$anterior" =~ ^releases/[a-f0-9]{40}-[0-9]+-[0-9]+$ && -s "$anterior/index.html" ]]; then
+            ln -s "$anterior" ".rollback-$2"
+            mv -Tf -- ".rollback-$2" current
+            echo 'Recuperada la version anterior.'
+          else
+            echo 'No hay una version anterior de este CD que recuperar.' >&2
+          fi
+          rm -f -- ".previous-$2"
+          EOF
+          echo '::error::Caddy no devuelve el SHA publicado. Revisar dominio, volumen y permisos (README.md).'
+          exit 1
+
+      - name: Limpiar llave SSH
+        if: always()
+        run: rm -f ~/.ssh/ec2
