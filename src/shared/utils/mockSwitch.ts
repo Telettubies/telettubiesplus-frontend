@@ -42,17 +42,17 @@ export function shouldUseMock(featureFlagOrEnvKey?: string): boolean {
     return false;
   }
 
+  // El interruptor global activa la demo completa, también si quedó algún flag granular apagado.
+  if (globalFlag === 'true') {
+    return true;
+  }
+
   // Si se consulta un flag granular específico (ej. VITE_MOCK_PANEL, VITE_MOCK_CONOCIMIENTO)
   if (featureFlagOrEnvKey && featureFlagOrEnvKey.startsWith('VITE_')) {
     const val = getEnvVar(featureFlagOrEnvKey);
     if (val !== undefined && val !== '') {
       return val === 'true';
     }
-  }
-
-  // Si el interruptor global es 'true', se activan los mockups
-  if (globalFlag === 'true') {
-    return true;
   }
 
   // Por defecto en desarrollo sin backend se asume true

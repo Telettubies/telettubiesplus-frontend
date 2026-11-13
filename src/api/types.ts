@@ -58,6 +58,9 @@ export interface HistorialRevision {
 }
 
 export interface ItemVerificable {
+  backend_item?: import('./backend').MatrixItem;
+  resultado_id?: string | null;
+  estado_propuesto?: Exclude<EstadoCumplimiento, 'revision'> | null;
   id: string;
   codigo_req: string; // Ej. "REQ-014"
   codigo?: string;
@@ -166,7 +169,8 @@ export interface MiembroOrganizacion {
 }
 
 export interface ErrorValidacionConocimiento {
-  linea: number;
+  linea?: number;
+  ubicacion?: (string | number)[];
   campo: string;
   detalle: string;
 }
@@ -196,7 +200,7 @@ export interface LicitacionPortafolioItem {
   codigo_proceso: string;
   entidad: string;
   objeto: string;
-  categoria_dominio: 'Infraestructura' | 'Tecnología';
+  categoria_dominio: 'Infraestructura' | 'Tecnología' | 'Sin clasificar';
   fecha_cierre: string;
   dias_restantes: number;
   estado_pipeline: 'Completado' | 'En Extracción 65%' | 'En Extracción 30%' | 'Fallido' | 'Nuevo Trabajo Registrado';
@@ -233,6 +237,7 @@ export interface BorradorObservacion {
   numeral?: string;
   titulo_corto?: string;
   cita_pliego?: string;
+  texto_completo?: string;
   destinatario: string;
   hecho_clausula?: string;
   hecho_cuestionado?: string;

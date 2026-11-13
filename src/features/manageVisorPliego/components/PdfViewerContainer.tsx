@@ -1,3 +1,7 @@
+import {services} from '@/features/connected/services';
+import {notifyError} from '@/features/connected/adapters';
+import { OriginalPdfCanvas } from './OriginalPdfCanvas';
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Clock,
@@ -29,6 +33,9 @@ import { SkeletonLoader } from '@/shared/components/feedback/SkeletonLoader';
 import '../styles/pdfHighlight.css';
 
 export interface PdfViewerContainerProps {
+  pdfUrl?:string;
+  pdfName?:string;
+  jumpPage?:number;
   activeItem: ItemVerificable | null;
   allItems?: ItemVerificable[];
   onSelectItemFromPdf?: (item: ItemVerificable) => void;
@@ -68,6 +75,7 @@ function getConciseReason(item: ItemVerificable): string {
 }
 
 export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
+  pdfUrl, pdfName, jumpPage,
   activeItem,
   allItems = [],
   onSelectItemFromPdf,
@@ -81,6 +89,7 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
   isPreview = true,
   className,
 }) => {
+  const [pdfPages,setPdfPages]=useState(shouldUseMock()?74:1);
   const {
     currentPage,
     setCurrentPage,
@@ -90,7 +99,9 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
     searchInPdf,
     setSearchInPdf,
     activeUbicacion,
-  } = usePdfJumpAndHighlight(activeItem, 74);
+  } = usePdfJumpAndHighlight(activeItem, pdfPages);
+
+  useEffect(() => { if (jumpPage) setCurrentPage(jumpPage); }, [jumpPage, pdfPages]);
 
   // Control para abrir y cerrar la descripción/diagnóstico del requisito en el PDF
   const [isClauseDiagnosisOpen, setIsClauseDiagnosisOpen] = useState(true);
@@ -103,6 +114,7 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
 
   const [observationNote, setObservationNote] = useState<string>('');
   const [copiedObservation, setCopiedObservation] = useState(false);
+  useEffect(()=>{if(!shouldUseMock()){setObservationNote('');setCopiedObservation(false);}},[activeItem?.id]);
 
   // Filtro y búsqueda de la tabla de accesos rápidos lateral
   const [quickFilter, setQuickFilter] = useState<QuickFilterState>('todos');
@@ -235,13 +247,20 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
         quickSearch.trim() === '' ||
         item.codigo_req.toLowerCase().includes(quickSearch.toLowerCase()) ||
         item.numeral.toLowerCase().includes(quickSearch.toLowerCase()) ||
-        item.descripcion_item.toLowerCase().includes(quickSearch.toLowerCase());
+        (item.descripcion_item ?? "").toLowerCase().includes(quickSearch.toLowerCase());
 
       if (!matchesSearch) return false;
 
-      if (quickFilter === 'cumple') return item.estado === 'cumple';
+      if (quickFilter === 'cumple') {
+        return item.estado === 'cumple' || (item.estado === 'revision' && item.estado_propuesto === 'cumple');
+      }
       if (quickFilter === 'brechas') {
-        return item.estado === 'cumple_parcialmente' || item.estado === 'no_cumple';
+        return (
+          item.estado === 'cumple_parcialmente' ||
+          item.estado === 'no_cumple' ||
+          (item.estado === 'revision' &&
+            (item.estado_propuesto === 'no_cumple' || item.estado_propuesto === 'cumple_parcialmente'))
+        );
       }
       if (quickFilter === 'revision') return item.estado === 'revision';
       return true;
@@ -250,22 +269,32 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
 
   // Contadores para las pestañas de filtro de la tabla
   const counts = React.useMemo(() => {
+    const isCumple = (i: ItemVerificable) =>
+      i.estado === 'cumple' || (i.estado === 'revision' && i.estado_propuesto === 'cumple');
+    const isBrecha = (i: ItemVerificable) =>
+      i.estado === 'cumple_parcialmente' ||
+      i.estado === 'no_cumple' ||
+      (i.estado === 'revision' &&
+        (i.estado_propuesto === 'no_cumple' || i.estado_propuesto === 'cumple_parcialmente'));
+    const isRevision = (i: ItemVerificable) => i.estado === 'revision';
+
     return {
       todos: allItems.length,
-      cumple: allItems.filter((i) => i.estado === 'cumple').length,
-      brechas: allItems.filter((i) => i.estado === 'cumple_parcialmente' || i.estado === 'no_cumple').length,
-      revision: allItems.filter((i) => i.estado === 'revision').length,
+      cumple: allItems.filter(isCumple).length,
+      brechas: allItems.filter(isBrecha).length,
+      revision: allItems.filter(isRevision).length,
     };
   }, [allItems]);
 
   // Borrador de observación
-  const defaultObservationText = activeItem
+  const defaultObservationText = !shouldUseMock() ? '' : activeItem
     ? `Observación al Numeral ${activeItem.numeral} (${activeItem.codigo_req}): Solicitamos a la Entidad admitir la acreditación de "${activeItem.descripcion_item}" conforme a los soportes aportados.`
     : '';
 
   const currentObservation = observationNote || defaultObservationText;
 
   const handleCopyObs = async () => {
+    if(!shouldUseMock()&&activeItem?.requisito_id){if(!activeItem.es_ambiguo){notifyError(new Error('Solo se generan observaciones para requisitos ambiguos.'));return;}try{const text=observationNote || (await services.draft(processId,activeItem.requisito_id)).texto;setObservationNote(text);await navigator.clipboard.writeText(text);setCopiedObservation(true);setTimeout(()=>setCopiedObservation(false),2000);}catch(e){notifyError(e);}return;}
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(currentObservation);
@@ -311,9 +340,9 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
         {/* Toolbar nativo con paginación y zoom */}
         <div className="flex-1 max-w-xl">
           <ViewerToolbar
-            fileName="Pliego_Condiciones_v1.pdf"
+            fileName={shouldUseMock() ? 'Pliego_Condiciones_v1.pdf' : (pdfName || 'Pliego original.pdf')}
             currentPage={currentPage}
-            totalPages={74}
+            totalPages={pdfPages}
             zoomPercent={zoomPercent}
             searchQuery={searchInPdf}
             onPageChange={(page) => {
@@ -464,8 +493,12 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
                       : item.estado === 'cumple_parcialmente'
                         ? 'bg-amber-500'
                         : item.estado === 'no_cumple'
-                          ? 'bg-red-500'
-                          : 'bg-blue-500';
+                          ? 'bg-rose-500'
+                          : item.estado_propuesto === 'cumple'
+                            ? 'bg-emerald-400'
+                            : item.estado_propuesto === 'no_cumple'
+                              ? 'bg-rose-400'
+                              : 'bg-blue-500';
 
                   const statusLabel =
                     item.estado === 'cumple'
@@ -474,12 +507,21 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
                         ? 'Parcial'
                         : item.estado === 'no_cumple'
                           ? 'No cumple'
-                          : 'Revisión';
+                          : item.estado_propuesto === 'cumple'
+                            ? 'Revisión (Cumple)'
+                            : item.estado_propuesto === 'no_cumple'
+                              ? 'Revisión (No cumple)'
+                              : 'Revisión';
+
+                  const displayCode =
+                    item.codigo_req && item.codigo_req.startsWith('REQ-')
+                      ? item.codigo_req
+                      : `REQ-${item.numeral || item.codigo_req.slice(0, 6)}`;
 
                   return (
                     <div
                       key={item.id}
-                      id={`quick-nav-item-${item.codigo_req}`}
+                      id={`quick-nav-item-${item.id}`}
                       role="button"
                       tabIndex={0}
                       onClick={() => handleJumpToRequirement(item)}
@@ -495,17 +537,20 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
                           : 'hover:bg-slate-50/80 dark:hover:bg-[#232323]'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-1.5 mb-1">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between gap-1.5 mb-1 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
                           <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
-                          <span className="font-semibold text-slate-900 dark:text-zinc-100 text-xs">
-                            {item.codigo_req}
+                          <span
+                            className="font-semibold text-slate-900 dark:text-zinc-100 text-xs truncate max-w-[80px]"
+                            title={item.codigo_req}
+                          >
+                            {displayCode}
                           </span>
-                          <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
+                          <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium shrink-0">
                             Numeral {item.numeral}
                           </span>
                         </div>
-                        <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">
+                        <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 shrink-0 whitespace-nowrap">
                           {statusLabel}
                         </span>
                       </div>
@@ -527,7 +572,7 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
         >
           {skeletonLoading ? (
             <div className="mx-auto max-w-[620px] rounded bg-white p-8 shadow-sm">
-              <SkeletonLoader lines={9} />
+              <SkeletonLoader rows={9} />
             </div>
           ) : expiredUrlState ? (
             <div className="flex min-h-[360px] items-center justify-center font-sans">
@@ -549,7 +594,7 @@ export const PdfViewerContainer: React.FC<PdfViewerContainerProps> = ({
               </div>
             </div>
           ) : (
-            sortedPages.map((pageData) => (
+            !shouldUseMock('VITE_MOCK_VISOR') ? <OriginalPdfCanvas id={processId} url={pdfUrl} item={activeItem} page={currentPage} zoom={zoomPercent} onPages={setPdfPages} search={searchInPdf} onPage={setCurrentPage}/> : sortedPages.map((pageData) => (
               <div
                 key={pageData.pagina}
                 id={`pdf-page-${pageData.pagina}`}

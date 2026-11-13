@@ -1,3 +1,6 @@
+import {shouldUseMock} from '@/shared/utils/mockSwitch';
+import {services} from '@/features/connected/services';
+import {notifyError} from '@/features/connected/adapters';
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -58,6 +61,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const [recentTender,setRecentTender]=useState<string|null>(null);
+  useEffect(()=>{if(shouldUseMock())return;setRecentTender(null);let alive=true;services.tenders().then(rows=>{if(alive)setRecentTender(rows.find(t=>t.estado==='completada')?.id||rows[0]?.id||null);}).catch(()=>{});return()=>{alive=false;};},[user?.organizacion_id,location.pathname]);
   const isAdmin = user?.rol === 'administrador';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [internalCollapsed, setInternalCollapsed] = useState(false);
@@ -96,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         location.pathname.includes('/nueva') || location.pathname.includes('/progreso'),
     },
     {
-      to: '/licitaciones/LP-MIN-001-2026',
+      to: shouldUseMock()?'/licitaciones/LP-MIN-001-2026':recentTender?`/licitaciones/${recentTender}`:'/licitaciones',
       label: 'Matriz y Análisis',
       icon: FiLayers,
       active:
@@ -175,7 +180,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               const Icon = item.icon;
               return (
                 <Link
-                  key={item.to}
+                  key={item.label}
                   to={item.to}
                   title={compact ? item.label : undefined}
                   aria-label={item.label}
@@ -223,7 +228,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 const Icon = item.icon;
                 return (
                   <Link
-                    key={item.to}
+                    key={item.label}
                     to={item.to}
                     title={compact ? item.label : undefined}
                     aria-label={item.label}
@@ -285,7 +290,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Role Switcher */}
         <button
           type="button"
-          onClick={() => switchDemoRole(isAdmin ? 'revisor' : 'administrador')}
+          onClick={() => {if(shouldUseMock())switchDemoRole(isAdmin ? 'revisor' : 'administrador');else notifyError(new Error('El rol lo asigna el administrador de la organización.'));}}
           title={`Rol activo: ${isAdmin ? 'Administrador' : 'Revisor'} (clic para alternar)`}
           data-testid="active-role-badge"
           className="w-full flex items-center gap-3 h-9 px-3 rounded-xl text-slate-600 hover:text-brand-primary hover:bg-slate-100/80 dark:text-zinc-400 dark:hover:text-[#3ECF8E] dark:hover:bg-[#232323] text-xs font-medium overflow-hidden whitespace-nowrap transition-colors duration-150 cursor-pointer"

@@ -15,6 +15,7 @@ export const AcceptInviteForm: React.FC<AcceptInviteFormProps> = ({ onSuccessRed
   const handleRedirect = onSuccessRedirect ?? (() => navigate('/licitaciones'));
 
   const {
+    invitationError,
     metadata,
     fullName,
     setFullName,
@@ -72,7 +73,7 @@ export const AcceptInviteForm: React.FC<AcceptInviteFormProps> = ({ onSuccessRed
               <div>
                 <p className="text-slate-400">Invitado por</p>
                 <p className="font-medium text-slate-800 mt-0.5">{metadata.invitadoPorRol}</p>
-                <p className="text-[11px] text-slate-500">{metadata.invitadoPorCorreo}</p>
+                {metadata.invitadoPorCorreo && <p className="text-[11px] text-slate-500">{metadata.invitadoPorCorreo}</p>}
               </div>
 
               <div>
@@ -150,6 +151,7 @@ export const AcceptInviteForm: React.FC<AcceptInviteFormProps> = ({ onSuccessRed
             </div>
           )}
 
+          {invitationError&&<p role="alert" className="p-3 rounded-xl bg-red-50 text-xs text-red-800">{invitationError}</p>}
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-1">
               <label className="block text-xs font-semibold text-slate-800">Correo corporativo</label>

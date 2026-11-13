@@ -1,3 +1,4 @@
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { cargaProgresoService } from '../services/cargaProgresoService';
 import {
@@ -29,9 +30,21 @@ export function useAnalysisPolling({
   onComplete,
 }: UseAnalysisPollingOptions) {
   const [progress, setProgress] = useState<ProgresoAnalisis>(
-    enabled ? MOCK_PROGRESO_EN_CURSO_ETAPA_4 : MOCK_PROGRESO_IDLE
+    shouldUseMock()
+      ? (enabled ? MOCK_PROGRESO_EN_CURSO_ETAPA_4 : MOCK_PROGRESO_IDLE)
+      : {
+          trabajo_id: '',
+          licitacion_id: licitacionId,
+          estado: 'pendiente',
+          etapa_actual: 'En cola',
+          etapa_indice: 0,
+          etapas_total: 8,
+          porcentaje: 0,
+          etapas: [],
+        }
   );
   const [isPolling, setIsPolling] = useState<boolean>(enabled);
+  const completeRef=useRef(onComplete);completeRef.current=onComplete;
   const tickRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -45,7 +58,7 @@ export function useAnalysisPolling({
 
   const startPolling = useCallback(() => {
     tickRef.current = 0;
-    setProgress(MOCK_PROGRESO_EN_CURSO_ETAPA_4);
+    if(shouldUseMock())setProgress(MOCK_PROGRESO_EN_CURSO_ETAPA_4);
     setIsPolling(true);
   }, []);
 
@@ -66,6 +79,35 @@ export function useAnalysisPolling({
     }
 
     const fetcher = customFetcher || cargaProgresoService.getAnalysisProgress;
+    if(!shouldUseMock()){
+      let alive=true;let pending:ReturnType<typeof setTimeout>;
+      const load = async () => {
+        try {
+          const next = await fetcher(licitacionId, ++tickRef.current);
+          if (!alive) return;
+          setProgress(next);
+          if (next.estado === 'completado' || next.estado === 'error') {
+            setIsPolling(false);
+            if (next.estado === 'completado') completeRef.current?.(next);
+          } else {
+            pending = setTimeout(load, intervalMs);
+          }
+        } catch (e) {
+          if (alive) {
+            setProgress((prev) => ({
+              ...prev,
+              estado: 'error',
+              mensaje_error: (e as Error).message || 'No se pudo consultar el progreso.',
+              etapas_total: prev.etapas_total || prev.etapas.length || 8,
+              etapa_indice: prev.etapa_indice || 1,
+            }));
+            setIsPolling(false);
+          }
+        }
+      };
+      void load();return()=>{alive=false;clearTimeout(pending);};
+    }
+
 
     timerRef.current = setInterval(async () => {
       tickRef.current += 1;
@@ -75,8 +117,8 @@ export function useAnalysisPolling({
 
         if (nextState.estado === 'completado' || nextState.estado === 'error') {
           stopPolling();
-          if (nextState.estado === 'completado' && onComplete) {
-            onComplete(nextState);
+          if (nextState.estado === 'completado' && completeRef.current) {
+            completeRef.current(nextState);
           }
         }
       } catch {
@@ -90,7 +132,7 @@ export function useAnalysisPolling({
         timerRef.current = null;
       }
     };
-  }, [isPolling, licitacionId, intervalMs, customFetcher, onComplete, stopPolling]);
+  }, [isPolling, licitacionId, intervalMs, customFetcher, stopPolling]);
 
   return {
     progress,

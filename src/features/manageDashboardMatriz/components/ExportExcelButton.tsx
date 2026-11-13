@@ -1,3 +1,6 @@
+import { services } from '@/features/connected/services';
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
+import { notifyError } from '@/features/connected/adapters';
 import React, { useState } from 'react';
 import { FiDownload } from 'react-icons/fi';
 import type { ItemVerificable } from '@/api/types';
@@ -19,6 +22,7 @@ export const ExportExcelButton: React.FC<ExportExcelButtonProps> = ({
 
   const triggerDownload = () => {
     setShowWarningModal(false);
+    if(!shouldUseMock()){void services.excel(codigoProceso).then(blob=>{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`matriz-${codigoProceso}.xlsx`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}).catch(notifyError);return;}
     const headers = [
       'ID Requisito',
       'Numeral',
@@ -40,7 +44,7 @@ export const ExportExcelButton: React.FC<ExportExcelButtonProps> = ({
       sanitizeSpreadsheetCell(i.estado),
       sanitizeSpreadsheetCell(i.evidencia?.fuente_nombre || '—'),
       sanitizeSpreadsheetCell(i.faltante || 'Ninguno'),
-      sanitizeSpreadsheetCell(i.revisiones.length > 0 ? 'Sí' : 'No'),
+      sanitizeSpreadsheetCell((i.revisiones ?? []).length > 0 ? 'Sí' : 'No'),
     ]);
 
     const csvContent = [headers, ...rows]

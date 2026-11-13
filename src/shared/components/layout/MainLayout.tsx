@@ -1,3 +1,4 @@
+import {shouldUseMock} from '@/shared/utils/mockSwitch';
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Navbar } from './Navbar';
@@ -21,7 +22,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   breadcrumbCurrent,
   hideNavbar = false,
 }) => {
-  const { user, switchDemoRole, transversalModal, setTransversalModal } = useAuth();
+  const { user, switchDemoRole, transversalModal, setTransversalModal, memberships,chooseOrganization } = useAuth();
+  const [operationError,setOperationError]=useState<string|null>(null);
+  React.useEffect(()=>{const show=(e:Event)=>setOperationError((e as CustomEvent<string>).detail);window.addEventListener('criterio:error',show);return()=>window.removeEventListener('criterio:error',show);},[]);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -70,6 +73,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       onNavigate={handleTourNavigate}
     >
       <div className="min-h-screen flex flex-col bg-surface-page dark:bg-[#121212] text-slate-900 dark:text-[#EDEDED] font-sans transition-colors duration-200">
+        {!shouldUseMock()&&(memberships?.length||0)>1&&<label className="fixed right-4 bottom-4 z-50 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">Organización <select value={user?.organizacion_id||''} onChange={e=>chooseOrganization?.(e.target.value)}>{memberships?.map(m=><option key={m.id} value={m.organizacion_id}>{m.organizacion_nombre || m.organizacion_id}</option>)}</select></label>}
+        {operationError&&<div role="alert" className="fixed top-4 right-4 z-[10000] max-w-md rounded-xl border border-red-200 bg-white p-4 text-sm text-red-800 shadow-lg">{operationError}<button className="ml-3 underline" onClick={()=>setOperationError(null)}>Cerrar</button></div>}
         <OfflineReadOnlyBanner
           active={transversalModal === 'offline_readonly'}
           onRestore={() => setTransversalModal(null)}
@@ -92,7 +97,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           }
         >
           <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 py-6 sm:py-8">
-            <div key={location.pathname} className="soft-page-enter soft-stagger">
+            <div key={`${location.pathname}:${user?.organizacion_id || ''}`} className="soft-page-enter soft-stagger">
               {children}
             </div>
           </main>

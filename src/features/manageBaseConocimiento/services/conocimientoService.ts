@@ -1,3 +1,5 @@
+import { services } from '@/features/connected/services';
+import { knowledgeView } from '@/features/connected/adapters';
 import { axiosClient } from '@/api/axiosClient';
 import { API_ENDPOINTS } from '@/api/endpoints';
 import { shouldUseMock } from '@/shared/utils/mockSwitch';
@@ -9,6 +11,7 @@ import type { ResumenBaseConocimiento } from '@/api/types';
 
 export const conocimientoService = {
   async getKnowledgeStatus(): Promise<ResumenBaseConocimiento> {
+    if (!shouldUseMock('VITE_MOCK_CONOCIMIENTO')) return knowledgeView(await services.knowledge());
     if (shouldUseMock('VITE_MOCK_CONOCIMIENTO')) {
       await new Promise((res) => setTimeout(res, 150));
       return MOCK_CONOCIMIENTO_VERIFICADO;
@@ -21,6 +24,7 @@ export const conocimientoService = {
     file: File,
     simulate422 = false
   ): Promise<ResumenBaseConocimiento> {
+    if (!shouldUseMock('VITE_MOCK_CONOCIMIENTO')) return knowledgeView((await services.uploadKnowledge(file)).resumen);
     if (shouldUseMock('VITE_MOCK_CONOCIMIENTO')) {
       await new Promise((res) => setTimeout(res, 350));
       if (simulate422 || file.name.toLowerCase().includes('error')) {

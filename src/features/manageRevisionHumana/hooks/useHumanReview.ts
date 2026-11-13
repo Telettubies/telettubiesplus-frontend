@@ -1,4 +1,6 @@
-import { useState, useMemo } from 'react';
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
+import { notifyError } from '@/features/connected/adapters';
+import { useState, useMemo, useEffect } from 'react';
 import type { EstadoCumplimiento } from '@/api/types';
 import { MOCK_REVISIONES_PENDIENTES, type ConflictReviewItem } from '../mockups/revisiones.mock';
 import { revisionService } from '../services/revisionService';
@@ -13,7 +15,7 @@ export type ReviewScenarioState =
 
 export function useHumanReview(licitacionId = 'LP-MIN-001-2026', initialScenario: ReviewScenarioState = 'pending_4') {
   const [scenario, setScenario] = useState<ReviewScenarioState>(initialScenario);
-  const [items, setItems] = useState<ConflictReviewItem[]>(MOCK_REVISIONES_PENDIENTES);
+  const [items, setItems] = useState<ConflictReviewItem[]>(()=>shouldUseMock()?MOCK_REVISIONES_PENDIENTES:[]);
   const [selectedId, setSelectedId] = useState<string>('rev-019');
   const [filterType, setFilterType] = useState<'todos' | 'habilitantes' | 'tecnicos'>('todos');
   const [toastMessage, setToastMessage] = useState<string | null>(
@@ -23,6 +25,7 @@ export function useHumanReview(licitacionId = 'LP-MIN-001-2026', initialScenario
   );
   const [isSubmitting, setIsSubmitting] = useState(initialScenario === 'recalculating');
 
+  useEffect(()=>{if(shouldUseMock())return;let alive=true;revisionService.getRevisionesPendientes(licitacionId).then(v=>{if(alive)setItems(v);}).catch(notifyError);return()=>{alive=false;};},[licitacionId]);
   const effectiveItems = useMemo(() => {
     if (scenario === 'empty_0') return [];
     if (scenario === 'resolved_toast') {
@@ -58,7 +61,7 @@ export function useHumanReview(licitacionId = 'LP-MIN-001-2026', initialScenario
       });
       setItems((prev) => prev.filter((item) => item.id !== activeItem.id));
       setToastMessage(res.mensaje);
-    } finally {
+    } catch(e){notifyError(e);} finally {
       setIsSubmitting(false);
     }
   };

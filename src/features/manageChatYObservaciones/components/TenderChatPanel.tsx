@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
+import { services } from '@/features/connected/services';
 import {
   FiPaperclip,
   FiX,
@@ -46,6 +48,15 @@ export const TenderChatPanel: React.FC<TenderChatPanelProps> = ({
 
   // Contexto adjunto a la pregunta que se está redactando actualmente (estilo Gemini / ChatGPT)
   const [attachedContext, setAttachedContext] = useState<string | null>(null);
+  const [contextOptions, setContextOptions] = useState(shouldUseMock() ? QUICK_CONTEXT_OPTIONS : []);
+  useEffect(() => {
+    if (shouldUseMock()) return;
+    const controller = new AbortController();
+    services.result(licitacionId, controller.signal).then(result => {
+      if (!controller.signal.aborted && result.kind === 'ready') setContextOptions(result.value.items.map(item => ({ id: item.requisito_id, label: `Numeral ${item.numeral} — ${item.descripcion_item} (Pág. ${item.ubicacion.pagina})` })));
+    }).catch(() => {});
+    return () => controller.abort();
+  }, [licitacionId]);
   const [showContextPicker, setShowContextPicker] = useState(false);
   const pickerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -244,7 +255,7 @@ export const TenderChatPanel: React.FC<TenderChatPanelProps> = ({
               </div>
 
               <div className="max-h-56 overflow-y-auto space-y-1">
-                {QUICK_CONTEXT_OPTIONS.map((option) => {
+                {contextOptions.map((option) => {
                   const isSelected = attachedContext === option.label;
                   return (
                     <button

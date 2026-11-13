@@ -8,12 +8,12 @@ interface PasswordRulesChecklistProps {
 
 export const PasswordRulesChecklist: React.FC<PasswordRulesChecklistProps> = ({ validation }) => {
   const rules = [
-    { key: 'minLength', label: '12+ characters', met: validation.minLength },
-    { key: 'hasUppercase', label: 'Uppercase letter', met: validation.hasUppercase },
-    { key: 'hasLowercase', label: 'Lowercase letter', met: validation.hasLowercase },
-    { key: 'hasNumber', label: 'Number', met: validation.hasNumber },
-    { key: 'hasSpecial', label: 'Special character', met: validation.hasSpecial },
-    { key: 'passwordsMatch', label: 'Passwords match', met: validation.passwordsMatch },
+    { key: 'minLength', label: 'Mínimo 12 caracteres', met: validation.minLength },
+    { key: 'hasUppercase', label: 'Una mayúscula', met: validation.hasUppercase },
+    { key: 'hasLowercase', label: 'Una minúscula', met: validation.hasLowercase },
+    { key: 'hasNumber', label: 'Un número', met: validation.hasNumber },
+    { key: 'hasSpecial', label: 'Un carácter especial', met: validation.hasSpecial },
+    { key: 'passwordsMatch', label: 'Las contraseñas coinciden', met: validation.passwordsMatch },
   ];
 
   return (

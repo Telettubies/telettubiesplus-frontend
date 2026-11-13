@@ -22,15 +22,21 @@ export const AssignedEvidenceSidebar: React.FC<AssignedEvidenceSidebarProps> = (
     ? 'HV_Dir_Obra_Castro.pdf (Pág. 2)'
     : activeItem?.evidencia?.fuente_nombre ||
       activeItem?.evidencia_fuente ||
-      'Contrato Obra Vial 2024-C08 (Pág. 12)';
+      (activeItem?.estado === 'cumple'
+        ? 'Base de conocimiento de la empresa'
+        : 'Sin documento fuente vinculado');
 
   const textoLiteral = isManual
     ? '“Director de obra, 2016–2025 (9 años). Especialización en Gerencia de Obras Civiles...”'
     : isUnverified
-      ? '“Acreditación de 5.000 m² de pavimentación asfáltica en vías primarias...” — similitud textual 78% (umbral 85%).'
+      ? `Cita con similitud por debajo del umbral de verificación (${Math.round((activeItem?.evidencia?.similitud ?? 0.78) * 100)}%). Requiere revisión.`
       : activeItem?.evidencia?.cita_literal ||
         activeItem?.evidencia_fragmento ||
-        '“Acreditación de 5.000 m² de pavimentación asfáltica en vías primarias...”';
+        (activeItem?.faltante
+          ? activeItem.faltante
+          : activeItem?.estado === 'cumple'
+            ? 'Condición técnica o financiera acreditada satisfactoriamente con la información aportada.'
+            : 'No se identificó fragmento textual en los documentos cargados que acredite este requisito.');
 
   const brechaText = isManual
     ? 'Ninguno. Revisado por L. Gómez · 2026-11-11.'
@@ -38,7 +44,10 @@ export const AssignedEvidenceSidebar: React.FC<AssignedEvidenceSidebarProps> = (
       ? 'Se recomienda revisar el documento original para confirmar este punto.'
       : activeItem?.faltante ||
         activeItem?.brecha_identificada ||
-        'Ninguno. Cumple con el metraje mínimo exigido de 4.000 m².';
+        (activeItem?.estado === 'cumple'
+          ? 'Ninguna. Cumple satisfactoriamente con las condiciones exigidas.'
+          : activeItem?.motivo_revision ||
+            'Brecha identificada: la documentación registrada no respalda esta exigencia del pliego.');
 
   return (
     <div className="border-t border-slate-200 bg-white px-5 py-4">

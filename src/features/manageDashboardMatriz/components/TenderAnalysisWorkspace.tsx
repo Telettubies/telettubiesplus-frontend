@@ -45,9 +45,10 @@ export const TenderAnalysisWorkspace: React.FC = () => {
           ? 'chat'
           : 'estadisticas';
 
-  const { resultado, selectedItem, setSelectedItem } = useTenderMatrix();
+  const { resultado, selectedItem, setSelectedItem, isLoading, error, reloadResult } = useTenderMatrix();
 
   const [matrixScenario, setMatrixScenario] = useState<MatrixPageScenario>('page_32_default');
+  const [pdfJumpPage, setPdfJumpPage] = useState<number>();
   const pdfSectionRef = useRef<HTMLDivElement | null>(null);
   const tableSectionRef = useRef<HTMLDivElement | null>(null);
 
@@ -107,37 +108,8 @@ export const TenderAnalysisWorkspace: React.FC = () => {
   const navigate = useNavigate();
   const isMockEnabled = shouldUseMock('VITE_MOCK_PANEL');
 
-  if (!isMockEnabled) {
-    return (
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center shadow-card flex flex-col items-center justify-center max-w-2xl mx-auto my-8">
-        <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 mb-4">
-          <FiFolder className="w-8 h-8" />
-        </div>
-        <h2 className="text-lg font-bold text-slate-900 tracking-tight font-sans mb-1.5">
-          No hay licitaciones analizadas en este espacio
-        </h2>
-        <p className="text-xs text-slate-500 font-sans max-w-md mx-auto mb-6">
-          Aún no se ha cargado ni procesado ningún pliego de condiciones. Suba un documento oficial en formato PDF para que la IA extraiga los numerales, verifique la experiencia y genere la matriz de cumplimiento.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => navigate(ROUTE_PATHS.TENDER_UPLOAD)}
-            className="px-4 py-2.5 rounded-xl bg-brand-primary text-white text-xs font-semibold hover:bg-brand-hover transition-colors cursor-pointer shadow-sm"
-          >
-            Cargar Primer Pliego (PDF)
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate(ROUTE_PATHS.TENDERS_LIST)}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-          >
-            Volver al Portafolio
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if(!isMockEnabled&&isLoading&&!resultado.items.length)return <SkeletonLoader variant="dashboard"/>;
+  if(!isMockEnabled&&error)return <div role="alert" className="p-5 rounded-xl border border-red-200 bg-red-50 text-sm text-red-800">{error}<button onClick={reloadResult} className="ml-3 underline">Reintentar</button><button onClick={()=>navigate(`/licitaciones/${id}/progreso`)} className="ml-3 underline">Ver progreso</button></div>;
 
   return (
     <div className="space-y-6">
@@ -148,7 +120,7 @@ export const TenderAnalysisWorkspace: React.FC = () => {
             {id || resultado.codigo_proceso}
           </h1>
           <p className="typo-label mt-0.5">
-            Constructora Andina S.A.S. • {resultado.entidad}
+            {isMockEnabled?'Constructora Andina S.A.S.':resultado.nombre} • {resultado.entidad}
           </p>
         </div>
 
@@ -270,7 +242,7 @@ export const TenderAnalysisWorkspace: React.FC = () => {
                   selectedItem={selectedItem}
                   onSelectItem={setSelectedItem}
                   onScrollToPdf={handleViewItemInPdf}
-                  forceAllReqs17And22InReview={matrixScenario !== 'page_34_req17_resolved'}
+                  forceAllReqs17And22InReview={isMockEnabled && matrixScenario !== 'page_34_req17_resolved'}
                   onOpenReviewForItem={() => switchTab('revision')}
                   onOpenObservationForItem={handleViewItemInPdf}
                 />
@@ -285,6 +257,9 @@ export const TenderAnalysisWorkspace: React.FC = () => {
         <div key="tab-pliego" ref={pdfSectionRef} className="space-y-4 soft-page-enter soft-stagger">
           <ErrorBoundary fallbackTitle="Error en el Visor PDF">
             <PdfViewerContainer
+              pdfUrl={resultado.pdf_url_temporal}
+              pdfName={resultado.pdf_nombre}
+              jumpPage={pdfJumpPage}
               activeItem={selectedItem}
               allItems={displayedResultado.items}
               processId={id || resultado.codigo_proceso || 'LP-MIN-001-2026'}
@@ -329,7 +304,12 @@ export const TenderAnalysisWorkspace: React.FC = () => {
           <ErrorBoundary fallbackTitle="Error en el Asistente Legal">
             <TenderChatPanel
               licitacionId={id || resultado.codigo_proceso}
-              onJumpToPdfPage={(_page, _label) => switchTab('pliego')}
+              onJumpToPdfPage={(page, label) => {
+                setPdfJumpPage(page);
+                const numeral = label.replace(/^Numeral\s+/i, '');
+                setSelectedItem(displayedResultado.items.find(item => item.numeral === numeral) || null);
+                switchTab('pliego');
+              }}
             />
           </ErrorBoundary>
         </div>

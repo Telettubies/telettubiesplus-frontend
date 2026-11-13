@@ -1,3 +1,4 @@
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
 import React from 'react';
 import { FiClock, FiArrowRight } from 'react-icons/fi';
 import type { ProgresoAnalisis, EtapaPipeline } from '@/api/types';
@@ -62,11 +63,12 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
         </div>
       </div>
 
+      {!shouldUseMock() && progress.estado === 'error' && progress.mensaje_error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800">{progress.mensaje_error}</p>}
       {/* Top Status Banner */}
       {progress.estado === 'pendiente' && (
         <div className="py-2 flex items-center gap-2.5 text-xs text-slate-600">
           <FiClock className="w-4 h-4 text-slate-500 shrink-0" />
-          <span>Seleccione un archivo PDF para iniciar el análisis del documento.</span>
+          <span>{!shouldUseMock() && progress.trabajo_id ? 'Trabajo en cola. Esperando al worker de análisis…' : 'Seleccione un archivo PDF para iniciar el análisis del documento.'}</span>
         </div>
       )}
 
@@ -89,36 +91,44 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
         />
       )}
 
-      {progress.estado === 'completado' && progress.resumen_final && (
+      {progress.estado === 'completado' && (
         <div
           data-testid="pipeline-completed-banner"
           className="rounded-2xl bg-emerald-50/80 dark:bg-[#0D7A4D]/15 border border-emerald-200 dark:border-[#3ECF8E]/30 p-5 space-y-4"
         >
           <div className="flex items-center justify-between">
-            <span className="text-emerald-700 text-xs font-medium">
+            <span className="text-emerald-700 dark:text-[#3ECF8E] text-xs font-medium">
               Análisis finalizado
             </span>
-            <span className={TYPOGRAPHY.label}>Etapa 8 de 8 • 100%</span>
+            <span className={TYPOGRAPHY.label}>
+              Etapa {progress.etapas_total || progress.etapas.length || 8} de {progress.etapas_total || progress.etapas.length || 8} • 100%
+            </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 pt-2 border-t border-emerald-200/60">
+          <div className="grid grid-cols-3 gap-4 pt-2 border-t border-emerald-200/60 dark:border-[#3ECF8E]/20">
             <div>
               <p className={`${TYPOGRAPHY.title} text-xl`}>
-                {progress.resumen_final.requisitos_extraidos}
+                {progress.resumen_final?.requisitos_extraidos ?? (progress.secciones_total ? `${progress.secciones_procesadas || progress.secciones_total}` : 'Completado')}
               </p>
-              <p className={TYPOGRAPHY.label}>Requisitos Extraídos</p>
+              <p className={TYPOGRAPHY.label}>
+                {progress.resumen_final ? 'Requisitos Extraídos' : 'Secciones Procesadas'}
+              </p>
             </div>
             <div>
               <p className={`${TYPOGRAPHY.title} text-xl`}>
-                {progress.resumen_final.secciones_validadas}
+                {progress.resumen_final?.secciones_validadas ?? (progress.secciones_total ?? (progress.etapas.length || 8))}
               </p>
-              <p className={TYPOGRAPHY.label}>Secciones Revisadas</p>
+              <p className={TYPOGRAPHY.label}>
+                {progress.resumen_final ? 'Secciones Revisadas' : 'Etapas Ejecutadas'}
+              </p>
             </div>
             <div>
               <p className={`${TYPOGRAPHY.title} text-xl`}>
-                {progress.resumen_final.duracion_texto}
+                {progress.resumen_final?.duracion_texto ?? 'Exitoso'}
               </p>
-              <p className={TYPOGRAPHY.label}>Duración</p>
+              <p className={TYPOGRAPHY.label}>
+                {progress.resumen_final ? 'Duración' : 'Estado'}
+              </p>
             </div>
           </div>
 
@@ -127,7 +137,7 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
               type="button"
               onClick={onOpenMatrix}
               data-testid="open-matrix-btn"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-primary text-white text-xs font-medium hover:bg-brand-hover transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-brand-primary text-white text-xs font-semibold hover:bg-brand-hover transition-colors shadow-sm cursor-pointer"
             >
               <span>Abrir Matriz de Cobertura y Visor del Pliego</span>
               <FiArrowRight className="w-3.5 h-3.5" />

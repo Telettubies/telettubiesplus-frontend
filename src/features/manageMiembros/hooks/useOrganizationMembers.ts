@@ -1,11 +1,15 @@
-import { useState, useCallback } from 'react';
+import { shouldUseMock } from '@/shared/utils/mockSwitch';
+import { services } from '@/features/connected/services';
+import { memberView,notifyError } from '@/features/connected/adapters';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { useState, useCallback, useEffect } from 'react';
 import { MOCK_MIEMBROS_EQUIPO } from '../mockups/miembros.mock';
 import { canModifyOrRemoveMember, canInviteEmail, getOppositeRole } from '../utils/memberPermissions';
 import { miembrosService } from '../services/miembrosService';
 import type { MiembroOrganizacion, RolOrganizacion } from '@/api/types';
 
 export function useOrganizationMembers(initialMembers: MiembroOrganizacion[] = MOCK_MIEMBROS_EQUIPO) {
-  const [members, setMembers] = useState<MiembroOrganizacion[]>(initialMembers);
+  const [members, setMembers] = useState<MiembroOrganizacion[]>(()=>shouldUseMock()?initialMembers:[]);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [blockedModalReason, setBlockedModalReason] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<{
@@ -14,6 +18,8 @@ export function useOrganizationMembers(initialMembers: MiembroOrganizacion[] = M
   } | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
+  const {user,reloadIdentity}=useAuth();
+  useEffect(()=>{if(shouldUseMock())return;const c=new AbortController();services.members(c.signal).then(rows=>{if(!c.signal.aborted)setMembers(rows.map(memberView));}).catch(e=>{if(!c.signal.aborted)notifyError(e);});return()=>c.abort();},[user?.organizacion_id]);
   const handleInvite = useCallback(
     async (correo: string, rol: RolOrganizacion) => {
       setInviteError(null);
@@ -22,10 +28,15 @@ export function useOrganizationMembers(initialMembers: MiembroOrganizacion[] = M
         setInviteError(check.reason || 'Correo inválido.');
         return false;
       }
-      const created = await miembrosService.inviteMember(correo, rol);
-      setMembers((prev) => [...prev, created]);
-      setInviteModalOpen(false);
-      return true;
+      try {
+        const created = await miembrosService.inviteMember(correo, rol);
+        setMembers((prev) => [...prev, created]);
+        setInviteModalOpen(false);
+        return true;
+      } catch (error) {
+        setInviteError((error as Error).message || 'No se pudo enviar la invitación.');
+        return false;
+      }
     },
     [members]
   );
@@ -66,6 +77,7 @@ export function useOrganizationMembers(initialMembers: MiembroOrganizacion[] = M
     if (!pendingAction) return;
     const { member, type } = pendingAction;
 
+    if(!shouldUseMock()){void(async()=>{try{if(type==='role_change')await services.role(member.id,getOppositeRole(member.rol));else await services.remove(member.id);setMembers((await services.members()).map(memberView));setPendingAction(null);if(member.id===user?.id)reloadIdentity?.();}catch(e){setPendingAction(null);setBlockedModalReason((e as Error).message||'No se pudo guardar el cambio.');}})();return;}
     if (type === 'role_change') {
       const nextRole = getOppositeRole(member.rol);
       setMembers((prev) =>
@@ -75,7 +87,7 @@ export function useOrganizationMembers(initialMembers: MiembroOrganizacion[] = M
       setMembers((prev) => prev.filter((m) => m.id !== member.id));
     }
     setPendingAction(null);
-  }, [pendingAction]);
+  }, [pendingAction, user?.id, reloadIdentity]);
 
   const simulateLastAdminBlockedModal = useCallback(() => {
     setMembers((prev) =>

@@ -5,6 +5,7 @@ import type { PdfValidationResult } from '../utils/pdfClientValidation';
 import { TYPOGRAPHY } from '@/shared/components/typography/Typography';
 
 interface PdfDropzoneProps {
+  maxPdfMb?:number; maxPdfPages?:number;
   selectedFileMeta: SelectedPdfMetadata | null;
   validationError: PdfValidationResult | null;
   useCache: boolean;
@@ -16,6 +17,7 @@ interface PdfDropzoneProps {
 }
 
 export const PdfDropzone: React.FC<PdfDropzoneProps> = ({
+  maxPdfMb=40,maxPdfPages=150,
   selectedFileMeta,
   validationError,
   useCache,
@@ -171,7 +173,7 @@ export const PdfDropzone: React.FC<PdfDropzoneProps> = ({
           >
             Seleccionar archivo PDF local
           </button>
-          <p className={TYPOGRAPHY.label}>Máximo 40MB o 150 páginas por proceso</p>
+          <p className={TYPOGRAPHY.label}>Máximo {maxPdfMb}MB o {maxPdfPages} páginas por proceso</p>
         </div>
       )}
 

@@ -1,10 +1,15 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MembersManagementView } from '../components/MembersManagementView';
+import { AuthProvider } from '@/shared/hooks/useAuth';
 
 describe('MembersTable y Regla S-05 de Único Administrador (HU-F03)', () => {
   it('lista los miembros de Constructora Andina S.A.S. y protege al último administrador activo', () => {
-    render(<MembersManagementView />);
+    render(
+      <AuthProvider>
+        <MembersManagementView />
+      </AuthProvider>
+    );
 
     expect(screen.getByText('Mauricio Restrepo')).toBeInTheDocument();
     expect(screen.getByText('Diana Cardona')).toBeInTheDocument();

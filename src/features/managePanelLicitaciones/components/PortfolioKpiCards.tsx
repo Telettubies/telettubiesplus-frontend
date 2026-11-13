@@ -1,23 +1,27 @@
+import {shouldUseMock} from '@/shared/utils/mockSwitch';
+import type {LicitacionPortafolioItem} from '@/api/types';
 import React from 'react';
 import { RecommendationBadge } from '@/shared/components/badges/RecommendationBadge';
 import { TYPOGRAPHY } from '@/shared/components/typography/Typography';
 import type { PortfolioVisualState } from '../hooks/useTendersList';
 
 interface PortfolioKpiCardsProps {
+  items?:LicitacionPortafolioItem[];
   visualState: PortfolioVisualState;
 }
 
-export const PortfolioKpiCards: React.FC<PortfolioKpiCardsProps> = ({ visualState }) => {
+export const PortfolioKpiCards: React.FC<PortfolioKpiCardsProps> = ({ visualState,items=[] }) => {
   const isEmpty = visualState === 'empty';
   const isError = visualState === 'error_403';
   const isSkeleton = visualState === 'skeleton';
   const isNewJob = visualState === 'new_job';
 
-  const totalCount = isError ? '—' : isEmpty ? 0 : isNewJob ? 25 : 24;
-  const inProgressCount = isEmpty ? 0 : isNewJob ? 5 : 4;
-  const viableCount = isError ? '—' : isEmpty ? 0 : 9;
-  const riskCount = isError ? '—' : isEmpty ? 0 : 6;
-  const discardedCount = isError ? '—' : isEmpty ? 0 : 9;
+  const mock=shouldUseMock();
+  const totalCount = !mock?items.length: isError ? '—' : isEmpty ? 0 : isNewJob ? 25 : 24;
+  const inProgressCount = !mock?items.filter(t=>t.estado_pipeline!=='Completado'&&t.estado_pipeline!=='Fallido').length: isEmpty ? 0 : isNewJob ? 5 : 4;
+  const viableCount = !mock?items.filter(t=>t.recomendacion==='presentarse').length: isError ? '—' : isEmpty ? 0 : 9;
+  const riskCount = !mock?items.filter(t=>t.recomendacion==='presentarse_con_riesgo'||t.recomendacion==='condicionada').length: isError ? '—' : isEmpty ? 0 : 6;
+  const discardedCount = !mock?items.filter(t=>t.recomendacion==='no_presentarse').length: isError ? '—' : isEmpty ? 0 : 9;
 
   return (
     <div

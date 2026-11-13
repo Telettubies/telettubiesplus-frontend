@@ -1,6 +1,8 @@
 import type { ItemVerificable, CategoriaRequisito } from '@/api/types';
 
-const CATEGORY_PRIORITY: Record<CategoriaRequisito, number> = {
+const CATEGORY_PRIORITY: Record<ItemVerificable['categoria'], number> = {
+  habilitantes: 0,
+  tecnicos: 2,
   habilitante: 0, // Estrictamente los Habilitantes primero (HU-F08 / HU-B19)
   experiencia: 1,
   tecnico: 2,

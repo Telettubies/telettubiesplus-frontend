@@ -1,3 +1,5 @@
+import { services } from '@/features/connected/services';
+import { useAuth } from '@/shared/hooks/useAuth';
 import React, { useState, useRef, useMemo } from "react";
 import {
   FiFolder,
@@ -270,6 +272,53 @@ export const CompanyDriveWorkspace: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const {user}=useAuth();
+  const [backendRevision, reloadBackend] = useState(0);
+  const sourceFiles = (sources: Awaited<ReturnType<typeof services.sources>>, summary: Awaited<ReturnType<typeof services.knowledge>>): DriveFile[] => {
+    const folderIds: Record<string, string> = { contrato: 'f-contratos', capacidad: 'f-contratos', hoja_de_vida: 'f-equipo', financiero: 'f-financiero', certificacion: 'f-calidad', empresa: 'f-juridico' };
+    return sources.map(source => ({
+      id: source.id, folderId: folderIds[source.tipo] || 'f-juridico', name: source.titulo,
+      type: 'json', size: '—', uploadedAt: source.creado_en,
+      status: summary.indexacion?.estado === 'completado' ? 'Indexado' : 'En revisión', category: source.tipo,
+    }));
+  };
+  const refreshBackend = async () => {
+    const [sources, summary] = await Promise.all([services.sources(), services.knowledge()]);
+    setFiles(sourceFiles(sources, summary));
+    reloadBackend(value => value + 1);
+  };
+  React.useEffect(() => {
+    if (isMockEnabled) return;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    setFiles([]);
+    const load = async () => {
+      try {
+        const [sources, summary] = await Promise.all([services.sources(controller.signal), services.knowledge(controller.signal)]);
+        if (controller.signal.aborted) return;
+        setFiles(sourceFiles(sources, summary));
+        if (summary.indexacion?.estado === 'fallido') showToast(summary.indexacion.error || 'La indexación falló. Puedes reintentarlo con Reindexar.');
+        if (summary.indexacion?.estado === 'en_cola' || summary.indexacion?.estado === 'en_ejecucion') timer = setTimeout(load, 3000);
+      } catch (error) {
+        if (!controller.signal.aborted) showToast((error as Error).message);
+      }
+    };
+    void load();
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [isMockEnabled, user?.organizacion_id, backendRevision]);
+  const uploadBackend = async (selected: FileList) => {
+    try {
+      if (selected.length !== 1 || !selected[0].name.toLowerCase().endsWith('.json')) throw new Error('El backend admite un único JSON estructurado. Los demás formatos se mantienen pendientes de integración.');
+      if (!window.confirm('Esta carga reemplaza toda la base de conocimiento de tu organización. ¿Continuar?')) return;
+      await services.uploadKnowledge(selected[0]);
+      showToast('Base guardada. La indexación se ha encolado.');
+      await refreshBackend();
+    } catch (error) {
+      showToast((error as Error).message || 'No se pudo cargar el archivo.');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
   const currentFolder = useMemo(
     () => folders.find((f) => f.id === currentFolderId) || null,
     [folders, currentFolderId],
@@ -304,6 +353,7 @@ export const CompanyDriveWorkspace: React.FC = () => {
 
   const handleCreateFolder = (e: React.FormEvent) => {
     e.preventDefault();
+    if(!isMockEnabled){showToast('Las carpetas se conservan en la interfaz; su creación en el servidor todavía no está disponible.');setIsNewFolderOpen(false);return;}
     const name = newFolderName.trim();
     if (!name) return;
     const newFolder: DriveFolder = {
@@ -319,6 +369,7 @@ export const CompanyDriveWorkspace: React.FC = () => {
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if(!isMockEnabled){if(e.target.files)void uploadBackend(e.target.files);return;}
     const uploaded = e.target.files;
     if (!uploaded || uploaded.length === 0) return;
 
@@ -358,6 +409,7 @@ export const CompanyDriveWorkspace: React.FC = () => {
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
+    if(!isMockEnabled){void uploadBackend(e.dataTransfer.files);return;}
     const droppedFiles = e.dataTransfer.files;
     if (!droppedFiles || droppedFiles.length === 0) return;
 
@@ -395,6 +447,7 @@ export const CompanyDriveWorkspace: React.FC = () => {
   };
 
   const handleDeleteFile = (id: string, name: string) => {
+    if(!isMockEnabled){showToast('La eliminación individual de fuentes aún no está disponible. Puedes reemplazar la base mediante una nueva carga JSON.');return;}
     setFiles((prev) => prev.filter((f) => f.id !== id));
     showToast(`Archivo "${name}" eliminado.`);
   };
@@ -448,8 +501,8 @@ export const CompanyDriveWorkspace: React.FC = () => {
       <input
         ref={fileInputRef}
         type="file"
-        multiple
-        accept=".pdf,.zip,.json,.xlsx,.xls,.docx,.doc"
+        multiple={isMockEnabled}
+        accept={isMockEnabled ? '.pdf,.zip,.json,.xlsx,.xls,.docx,.doc' : '.json'}
         onChange={handleFileUpload}
         className="hidden"
       />
@@ -476,6 +529,8 @@ export const CompanyDriveWorkspace: React.FC = () => {
 
         {/* Acciones Principales estilo Drive */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {!isMockEnabled&&<><a href="/base-conocimiento-ejemplo.json" download className="text-xs text-brand-primary underline">Ejemplo JSON</a><button type="button" onClick={()=>void refreshBackend().catch(e=>showToast(e.message))} className="px-3 py-2 rounded-xl border border-slate-200 text-xs">Actualizar</button><button type="button" onClick={()=>void services.reindex().then(()=>{showToast('Indexación encolada.');reloadBackend(value=>value+1);}).catch(e=>showToast(e.message))} className="px-3 py-2 rounded-xl border border-slate-200 text-xs">Reindexar</button></>}
+
           <button
             type="button"
             onClick={() => setIsNewFolderOpen(true)}
@@ -753,7 +808,7 @@ export const CompanyDriveWorkspace: React.FC = () => {
                       <button
                         type="button"
                         onClick={() =>
-                          showToast(`Descargando "${file.name}"...`)
+                          showToast(isMockEnabled ? `Descargando "${file.name}"...` : 'La API todavía no ofrece descarga individual de fuentes.')
                         }
                         title="Descargar archivo"
                         className="p-1 rounded hover:bg-slate-100 text-slate-600 cursor-pointer"
@@ -836,7 +891,7 @@ export const CompanyDriveWorkspace: React.FC = () => {
                           <button
                             type="button"
                             onClick={() =>
-                              showToast(`Descargando "${file.name}"...`)
+                              showToast(isMockEnabled ? `Descargando "${file.name}"...` : 'La API todavía no ofrece descarga individual de fuentes.')
                             }
                             title="Descargar archivo"
                             className="p-1 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
