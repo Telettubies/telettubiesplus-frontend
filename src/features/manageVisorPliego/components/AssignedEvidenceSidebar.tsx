@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { axiosClient as api } from '@/api/axiosClient';
 import type { ItemVerificable } from '@/api/types';
 import { sanitizeText } from '@/shared/utils/sanitizeText';
 
@@ -13,6 +14,9 @@ export const AssignedEvidenceSidebar: React.FC<AssignedEvidenceSidebarProps> = (
   unverifiedSimOverride = false,
   manualValidatedOverride = false,
 }) => {
+  const [documentUrl, setDocumentUrl] = useState('');
+  const [documentError, setDocumentError] = useState('');
+  useEffect(() => { setDocumentUrl(''); setDocumentError(''); }, [activeItem?.id]);
   const isManual = manualValidatedOverride || activeItem?.id === 'REQ-017-RESOLVED';
   const itemVerified =
     activeItem?.evidencia?.cita_verificada ?? activeItem?.cita_verificada ?? true;
@@ -71,6 +75,7 @@ export const AssignedEvidenceSidebar: React.FC<AssignedEvidenceSidebarProps> = (
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-y-2 gap-x-3 text-[12px] leading-relaxed">
+        {activeItem?.evidencia?.fuente_id && <div className="col-span-2"><button onClick={async () => { try { const {data} = await api.get(`/conocimiento/documentos/fuentes/${activeItem.evidencia!.fuente_id}/pdf-url`); setDocumentUrl(`${data.url}${data.pagina ? `#page=${data.pagina}` : ''}`); } catch { setDocumentError('Esta fuente no dispone de un PDF empresarial vinculado.'); } }}>Consultar documento empresarial</button>{documentUrl && <a href={documentUrl} target="_blank" rel="noreferrer">Abrir PDF original</a>}{documentError && <p role="status">{documentError}</p>}</div>}
         <span className="text-slate-500">Fuente</span>
         <span className="font-medium text-slate-800">{sanitizeText(fuente)}</span>
 

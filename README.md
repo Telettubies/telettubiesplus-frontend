@@ -255,3 +255,16 @@ SOFTWARE.
 ## Backend real en local
 
 Para iniciar sesión y trabajar con FastAPI en lugar de datos de demostración, consulta [Integración local](docs/INTEGRACION_LOCAL.md).
+
+
+## PDFs empresariales
+
+La base de conocimiento del modo conectado incluye carga de PDF, lectura asincrona,
+revision editable junto al PDF original y aprobacion antes de indexar. Se conserva
+la carga JSON. Los documentos fallidos pueden reintentarse; los aprobados pueden
+retirarse de la base activa conservando el historial. La matriz permite consultar
+el PDF empresarial vinculado a una evidencia. El chat permite recuperar su indice.
+
+La API y el worker requieren la migracion Alembic `362f8aee173c`. Los limites se
+obtienen del backend; el frontend no incorpora claves de proveedores ni modelos.
+Ver `telettubiesplus-backend/docs/DOCUMENTOS_EMPRESA.md` para despliegue y compatibilidad.
