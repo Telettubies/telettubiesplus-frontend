@@ -538,7 +538,26 @@ export const CompanyDriveWorkspace: React.FC = () => {
       onDrop={handleFileDrop}
       className="space-y-6 font-sans relative"
     >
-      {!isMockEnabled && reviewDocumentId && <div role="dialog" aria-modal="true" aria-label="Revisar documento" className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4"><div className="max-w-5xl mx-auto bg-white rounded-2xl p-4"><button type="button" onClick={() => setReviewDocumentId(null)}>Cerrar</button><CompanyDocuments soloRevision documentoId={reviewDocumentId} organizacionId={user?.organizacion_id} canEdit={user?.rol === "administrador"} onChanged={() => { setReviewDocumentId(null); reloadBackend(v => v + 1); }}/></div></div>}
+      {!isMockEnabled && reviewDocumentId && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Revisar documento"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 backdrop-blur-sm sm:p-6"
+          onClick={(e) => { if (e.target === e.currentTarget) setReviewDocumentId(null); }}
+        >
+          <div className="flex max-h-[94vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl bg-white shadow-elevated">
+            <CompanyDocuments
+              soloRevision
+              documentoId={reviewDocumentId}
+              organizacionId={user?.organizacion_id}
+              canEdit={user?.rol === "administrador"}
+              onClose={() => setReviewDocumentId(null)}
+              onChanged={() => { setReviewDocumentId(null); reloadBackend(v => v + 1); }}
+            />
+          </div>
+        </div>
+      )}
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
