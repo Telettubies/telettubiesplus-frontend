@@ -1,3 +1,4 @@
+import { axiosClient as api } from '@/api/axiosClient';
 import { CompanyDocuments } from '@/features/connected/CompanyDocuments';
 import { services } from '@/features/connected/services';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -35,6 +36,7 @@ export interface DriveFolder {
 
 export interface DriveFile {
   id: string;
+  documentId?: string;
   folderId: string;
   name: string;
   type: FileType;
@@ -267,6 +269,9 @@ export const CompanyDriveWorkspace: React.FC = () => {
   const [isDragOver, setIsDragOver] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const folderInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [reviewDocumentId, setReviewDocumentId] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -283,9 +288,19 @@ export const CompanyDriveWorkspace: React.FC = () => {
       status: summary.indexacion?.estado === 'completado' ? 'Indexado' : 'En revisión', category: source.tipo,
     }));
   };
+  type DocumentoListado = { id: string; nombre: string; estado: string; creado_en: string };
+  const pdfFiles = (docs: DocumentoListado[]): DriveFile[] => docs.map(doc => ({
+    id: `pdf-${doc.id}`, documentId: doc.id, folderId: 'f-contratos', name: doc.nombre,
+    type: 'pdf', size: '\u2014', uploadedAt: doc.creado_en,
+    status: doc.estado === 'aprobado' ? 'Indexado' : 'En revisi\u00f3n', category: 'PDF empresarial',
+  }));
+  const abrirArchivo = (file: DriveFile) => {
+    if (file.documentId) setReviewDocumentId(file.documentId);
+    else showToast(isMockEnabled ? `Archivo: ${file.name}` : 'Este registro contiene datos estructurados de contexto.');
+  };
   const refreshBackend = async () => {
-    const [sources, summary] = await Promise.all([services.sources(), services.knowledge()]);
-    setFiles(sourceFiles(sources, summary));
+    const [sources, summary, docs] = await Promise.all([services.sources(), services.knowledge(), api.get<DocumentoListado[]>("/conocimiento/documentos")]);
+    setFiles([...pdfFiles(docs.data), ...sourceFiles(sources, summary)]);
     reloadBackend(value => value + 1);
   };
   React.useEffect(() => {
@@ -295,11 +310,11 @@ export const CompanyDriveWorkspace: React.FC = () => {
     setFiles([]);
     const load = async () => {
       try {
-        const [sources, summary] = await Promise.all([services.sources(controller.signal), services.knowledge(controller.signal)]);
+        const [sources, summary, docs] = await Promise.all([services.sources(controller.signal), services.knowledge(controller.signal), api.get<DocumentoListado[]>("/conocimiento/documentos", {signal: controller.signal})]);
         if (controller.signal.aborted) return;
-        setFiles(sourceFiles(sources, summary));
+        setFiles([...pdfFiles(docs.data), ...sourceFiles(sources, summary)]);
         if (summary.indexacion?.estado === 'fallido') showToast(summary.indexacion.error || 'La indexación falló. Puedes reintentarlo con Reindexar.');
-        if (summary.indexacion?.estado === 'en_cola' || summary.indexacion?.estado === 'en_ejecucion') timer = setTimeout(load, 3000);
+        if (docs.data.some(doc => ['en_cola', 'procesando', 'indexando', 'retirando'].includes(doc.estado)) || summary.indexacion?.estado === 'en_cola' || summary.indexacion?.estado === 'en_ejecucion') timer = setTimeout(load, 3000);
       } catch (error) {
         if (!controller.signal.aborted) showToast((error as Error).message);
       }
@@ -307,18 +322,43 @@ export const CompanyDriveWorkspace: React.FC = () => {
     void load();
     return () => { controller.abort(); clearTimeout(timer); };
   }, [isMockEnabled, user?.organizacion_id, backendRevision]);
-  const uploadBackend = async (selected: FileList) => {
+  const uploadBackend = async (selected: FileList | File[]) => {
+    if (uploading) return;
+    const all = Array.from(selected);
+    const supported = all.filter(file => /\.(pdf|json)$/i.test(file.name));
+    if (!supported.length) { showToast('Selecciona archivos PDF, JSON o una carpeta que los contenga.'); return; }
+    const jsonFiles = supported.filter(file => /\.json$/i.test(file.name));
+    if (jsonFiles.length > 1) { showToast('Selecciona un solo JSON de contexto por carga; puedes incluir varios PDFs.'); return; }
+    if (jsonFiles.length && !window.confirm('El JSON reemplazara el contexto actual cuando termine de indexarse. Los PDFs requieren revision. Continuar?')) return;
+    setUploading(true);
+    let uploaded = 0;
+    const failed: string[] = [];
     try {
-      if (selected.length !== 1 || !selected[0].name.toLowerCase().endsWith('.json')) throw new Error('El backend admite un único JSON estructurado. Los demás formatos se mantienen pendientes de integración.');
-      if (!window.confirm('Esta carga reemplaza toda la base de conocimiento de tu organización. ¿Continuar?')) return;
-      await services.uploadKnowledge(selected[0]);
-      showToast('Base guardada. La indexación se ha encolado.');
+      for (const file of [...jsonFiles, ...supported.filter(file => /\.pdf$/i.test(file.name))]) {
+        try {
+          if (/\.json$/i.test(file.name)) await services.uploadKnowledge(file);
+          else { const form = new FormData(); form.append('archivo', file); await api.post('/conocimiento/documentos', form, {headers: {'Content-Type': 'multipart/form-data'}}); }
+          uploaded++;
+        } catch { failed.push(file.name); }
+      }
       await refreshBackend();
-    } catch (error) {
-      showToast((error as Error).message || 'No se pudo cargar el archivo.');
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+      showToast(`${uploaded} archivo(s) cargado(s).${all.length > supported.length ? ` ${all.length - supported.length} archivo(s) de otros formatos omitidos.` : ''}${failed.length ? ` No se pudieron cargar: ${failed.join(', ')}.` : ''}`);
+    } catch (error) { showToast((error as Error).message || 'No se pudo actualizar la lista.'); }
+    finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; if (folderInputRef.current) folderInputRef.current.value = ''; }
+  };
+  const subirCarpetaArrastrada = async (transfer: DataTransfer) => {
+    const entradas = Array.from(transfer.items).map(item => item.webkitGetAsEntry?.()).filter(Boolean);
+    if (!entradas.length) { await uploadBackend(transfer.files); return; }
+    const encontrados: File[] = [];
+    const recorrer = async (entrada: any): Promise<void> => {
+      if (entrada.isFile) encontrados.push(await new Promise<File>((resolve, reject) => entrada.file(resolve, reject)));
+      else if (entrada.isDirectory) {
+        const reader = entrada.createReader();
+        for (;;) { const children = await new Promise<any[]>((resolve, reject) => reader.readEntries(resolve, reject)); if (!children.length) break; for (const child of children) await recorrer(child); }
+      }
+    };
+    try { for (const entrada of entradas) await recorrer(entrada); await uploadBackend(encontrados); }
+    catch { showToast('No se pudo leer la carpeta arrastrada. Usa Subir carpeta.'); }
   };
   const currentFolder = useMemo(
     () => folders.find((f) => f.id === currentFolderId) || null,
@@ -410,7 +450,7 @@ export const CompanyDriveWorkspace: React.FC = () => {
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    if(!isMockEnabled){void uploadBackend(e.dataTransfer.files);return;}
+    if(!isMockEnabled){void subirCarpetaArrastrada(e.dataTransfer);return;}
     const droppedFiles = e.dataTransfer.files;
     if (!droppedFiles || droppedFiles.length === 0) return;
 
@@ -498,16 +538,17 @@ export const CompanyDriveWorkspace: React.FC = () => {
       onDrop={handleFileDrop}
       className="space-y-6 font-sans relative"
     >
-      {!isMockEnabled && <CompanyDocuments organizacionId={user?.organizacion_id} canEdit={user?.rol === "administrador"} onChanged={() => reloadBackend(v => v + 1)}/>}
+      {!isMockEnabled && reviewDocumentId && <div role="dialog" aria-modal="true" aria-label="Revisar documento" className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4"><div className="max-w-5xl mx-auto bg-white rounded-2xl p-4"><button type="button" onClick={() => setReviewDocumentId(null)}>Cerrar</button><CompanyDocuments soloRevision documentoId={reviewDocumentId} organizacionId={user?.organizacion_id} canEdit={user?.rol === "administrador"} onChanged={() => { setReviewDocumentId(null); reloadBackend(v => v + 1); }}/></div></div>}
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
         type="file"
-        multiple={isMockEnabled}
-        accept={isMockEnabled ? '.pdf,.zip,.json,.xlsx,.xls,.docx,.doc' : '.json'}
+        multiple
+        accept={isMockEnabled ? '.pdf,.zip,.json,.xlsx,.xls,.docx,.doc' : '.json,.pdf'}
         onChange={handleFileUpload}
         className="hidden"
       />
+      <input type="file" ref={folderInputRef} className="hidden" multiple {...({ webkitdirectory: '', directory: '' } as React.InputHTMLAttributes<HTMLInputElement>)} onChange={e => { if (e.target.files) void uploadBackend(e.target.files); }}/>
 
       {/* Header Principal Unificado sin textos duplicados */}
       <div className="pb-5 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-4">
@@ -541,14 +582,16 @@ export const CompanyDriveWorkspace: React.FC = () => {
             <FiFolderPlus className="w-4 h-4 text-slate-600" />
             <span>Nueva Carpeta</span>
           </button>
+          {!isMockEnabled && <button type="button" disabled={uploading} onClick={() => folderInputRef.current?.click()} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold">Subir carpeta</button>}
           <button
             type="button"
             data-tour="knowledge-uploader"
+            disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-primary hover:bg-brand-hover text-white text-xs font-semibold transition-colors cursor-pointer shadow-sm"
           >
             <FiUploadCloud className="w-4 h-4" />
-            <span>Subir Archivo</span>
+            <span>{uploading ? "Cargando..." : "Subir archivos"}</span>
           </button>
         </div>
       </div>
@@ -809,10 +852,8 @@ export const CompanyDriveWorkspace: React.FC = () => {
                     <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
                       <button
                         type="button"
-                        onClick={() =>
-                          showToast(isMockEnabled ? `Descargando "${file.name}"...` : 'La API todavía no ofrece descarga individual de fuentes.')
-                        }
-                        title="Descargar archivo"
+                        onClick={() => abrirArchivo(file)}
+                        title="Abrir o revisar archivo"
                         className="p-1 rounded hover:bg-slate-100 text-slate-600 cursor-pointer"
                       >
                         <FiDownload className="w-3.5 h-3.5" />
@@ -892,10 +933,8 @@ export const CompanyDriveWorkspace: React.FC = () => {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() =>
-                              showToast(isMockEnabled ? `Descargando "${file.name}"...` : 'La API todavía no ofrece descarga individual de fuentes.')
-                            }
-                            title="Descargar archivo"
+                            onClick={() => abrirArchivo(file)}
+                            title="Abrir o revisar archivo"
                             className="p-1 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
                           >
                             <FiDownload className="w-3.5 h-3.5" />

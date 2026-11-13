@@ -1,4 +1,4 @@
-import { CompanyDocuments } from './CompanyDocuments';
+import { CompanyDriveWorkspace } from '@/features/manageBaseConocimiento/components/CompanyDriveWorkspace';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { services } from './services';
@@ -78,40 +78,7 @@ function ProgressContent({ id }: {
     }, [resource.data?.estado, id, navigate]);
     return <><h1>Procesando tu pliego</h1><ErrorBox error={resource.error || action.error}/>{resource.loading && <Loading />}{resource.data && <ProgressCard value={resource.data}/>}<div className="row"><button onClick={resource.refresh}>Actualizar</button>{resource.data?.estado === 'fallido' && <button className="primary" disabled={action.busy} onClick={() => void action.run(async () => { await services.retry(id); resource.refresh(); })}>Reintentar análisis</button>}<Link to="/licitaciones">Volver al listado</Link></div></>;
 }
-export function KnowledgePage() {
-    const { user } = useAuth();
-    const summary = useResource(useCallback((s: AbortSignal) => services.knowledge(s), []), v => !!v.indexacion && active(v.indexacion.estado));
-    const sources = useResource(useCallback((s: AbortSignal) => services.sources(s), []));
-    const action = useAction();
-    const [file, setFile] = useState<File | null>(null);
-    const [replace, setReplace] = useState(false);
-    return <><h1>Base de conocimiento</h1><CompanyDocuments canEdit={user?.rol === "administrador"}/><p className="muted">Información estructurada compartida por los análisis de tu organización.</p><ErrorBox error={summary.error || sources.error || action.error}/>{summary.loading && <Loading />}
-    <section className="card"><h2>Cargar información de la empresa</h2><p>Selecciona un JSON con empresa, indicadores financieros, contratos, personas, certificaciones y capacidades.</p><p><a href="/base-conocimiento-ejemplo.json" download>Descargar ejemplo sintético</a></p>
-    <p className="notice warning">Cada carga reemplaza por completo la base anterior y vuelve a indexarla. Los archivos PDF, ZIP y hojas de cálculo no son compatibles con esta carga.</p>
-    <form onSubmit={e => {
-            e.preventDefault();
-            void action.run(async () => {
-                if (!file)
-                    throw new Error('Selecciona el archivo JSON.');
-                JSON.parse(await file.text());
-                await services.uploadKnowledge(file);
-                summary.refresh();
-                sources.refresh();
-                setFile(null);
-                setReplace(false);
-            });
-        }}>
-      <label>Archivo JSON<input key={file ? 'selected' : 'empty'} type="file" accept=".json,application/json" disabled={action.busy} onChange={e => setFile(e.target.files?.[0] || null)}/></label>
-      <label className="row"><input type="checkbox" checked={replace} onChange={e => setReplace(e.target.checked)}/>Entiendo que esta carga reemplaza la base de conocimiento actual.</label>
-      <button className="primary" disabled={!file || !replace || action.busy}>{action.busy ? 'Cargando…' : 'Cargar e indexar'}</button>
-    </form></section>
-    {summary.data && <section className="card"><div className="section-top"><h2>{summary.data.empresa || 'Sin información cargada'}</h2><button onClick={() => { summary.refresh(); sources.refresh(); }}>Actualizar</button></div><div className="grid">{[['Contratos', summary.data.contratos], ['Personas', summary.data.personas], ['Certificaciones', summary.data.certificaciones], ['Capacidades', summary.data.capacidades], ['Años financieros', summary.data.anios_financieros], ['Fragmentos indexados', summary.data.fragmentos_indexados]].map(([k, v]) => <div className="metric" key={k}><strong>{v}</strong>{k}</div>)}</div><p>Última carga: {date(summary.data.cargada_en)}</p>
-      {summary.data.indexacion && <><p>Indexación: <Badge value={summary.data.indexacion.estado}/></p><progress max={100} value={summary.data.indexacion.progreso}/><ErrorBox error={summary.data.indexacion.error ? { message: summary.data.indexacion.error } : null}/></>}
-      <button disabled={action.busy || (!summary.data.cargada && summary.data.indexacion?.estado !== "fallido") || !!summary.data.indexacion && active(summary.data.indexacion.estado)} onClick={() => void action.run(async () => { await services.reindex(); summary.refresh(); })}>Volver a indexar</button>
-    </section>}
-    <section className="card"><h2>Fuentes cargadas</h2>{!sources.data?.length ? <p>No hay fuentes cargadas.</p> : <ul>{sources.data.map(s => <li key={s.id}>{s.titulo} · {s.tipo}</li>)}</ul>}</section>
-  </>;
-}
+export function KnowledgePage() { return <CompanyDriveWorkspace />; }
 export function MembersPage() {
     const auth = useAuth();
     const members = useResource(useCallback((s: AbortSignal) => services.members(s), []));
